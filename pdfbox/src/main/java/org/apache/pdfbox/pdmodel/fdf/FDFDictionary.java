@@ -102,6 +102,9 @@ public class FDFDictionary implements COSObjectable
                     List fieldList = new ArrayList();
                     for( int f=0; f<fields.getLength(); f++ )
                     {
+                        if( fields.item( f ).getNodeType() != Node.ELEMENT_NODE){
+                            continue;
+                        }
                         fieldList.add( new FDFField( (Element)fields.item( f ) ) );
                         Node currentNode = fields.item( f );
                         if (currentNode instanceof Element) 
