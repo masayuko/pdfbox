@@ -24,6 +24,7 @@ import org.apache.pdfbox.cos.COSArray;
 import org.apache.pdfbox.cos.COSDictionary;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.common.PDStream;
 
 /**
  * This is implementation of the Type0 Font. See <a
@@ -80,7 +81,7 @@ public class PDType0Font extends PDSimpleFont
     @Override
     public PDRectangle getFontBoundingBox() throws IOException
     {
-        throw new RuntimeException("Not yet implemented");
+        return descendantFont.getFontDescriptor().getFontBoundingBox();
     }
 
     /**
@@ -179,6 +180,48 @@ public class PDType0Font extends PDSimpleFont
     public PDFont getDescendantFont()
     {
         return descendantFont;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public float getStringWidth(String string) throws IOException
+    {
+        byte[] bytes = string.getBytes("UTF-16BE");
+        float totalWidth = 0f;
+        for (int i=0; i<bytes.length; i=i+2)
+        {
+            totalWidth += getFontWidth(bytes, i, 2);
+        }
+        return totalWidth;
+    }
+
+    public void setDescendantFont(PDCIDFont cidfont)
+    {
+        descendantFont = cidfont;
+        descendantFontArray = new COSArray();
+        descendantFontArray.add(descendantFont);
+        font.setItem(COSName.DESCENDANT_FONTS, descendantFontArray);
+    }
+
+    public void setEncoding(COSName encoding)
+    {
+        font.setItem(COSName.ENCODING, encoding);
+    }
+
+    public void setToUnicode(PDStream toUnicode)
+    {
+        font.setItem(COSName.TO_UNICODE, toUnicode);
+    }
+
+    public void resetToUnicode(PDStream toUnicode)
+    {
+        if (font.getItem(COSName.TO_UNICODE) != null)
+        {
+            font.removeItem(COSName.TO_UNICODE);
+        }
+        font.setItem(COSName.TO_UNICODE, toUnicode);
     }
 
 }

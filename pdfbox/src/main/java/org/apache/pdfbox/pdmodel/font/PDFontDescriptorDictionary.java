@@ -578,6 +578,20 @@ public class PDFontDescriptorDictionary extends PDFontDescriptor implements COSO
     }
 
     /**
+     * Reset the true type font program.
+     *
+     * @param ttfStream The true type stream.
+     */
+    public void resetFontFile2( PDStream ttfStream )
+    {
+        if (dic.getItem(COSName.FONT_FILE2) != null)
+        {
+            dic.removeItem(COSName.FONT_FILE2);
+        }
+        dic.setItem( COSName.FONT_FILE2, ttfStream );
+    }
+
+    /**
      * A stream containing a font program that is not true type or type 1.
      *
      * @return A stream containing a font program.

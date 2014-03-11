@@ -17,6 +17,7 @@
 package org.apache.fontbox.ttf;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  * A table in a true type font.
@@ -30,6 +31,7 @@ public class TTFTable
     private long checkSum;
     private long offset;
     private long length;
+    private byte[] rawBytes;
       
     /**
      * @return Returns the checkSum.

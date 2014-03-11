@@ -674,6 +674,86 @@ public class OS2WindowsMetricsTable extends TTFTable
         this.winDescent = winDescentValue;
     }
 
+    /**
+     * @return Returns the height.
+     */
+    public int getHeight()
+    {
+        return height;
+    }
+
+    /**
+     * @param height The height to set.
+     */
+    public void setHeight(int height)
+    {
+        this.height = height;
+    }
+
+    /**
+     * @return Returns the capHeight.
+     */
+    public int getCapHeight()
+    {
+        return capHeight;
+    }
+
+    /**
+     * @param capHeight The capHeight to set.
+     */
+    public void setCapHeight(int capHeight)
+    {
+        this.capHeight = capHeight;
+    }
+
+    /**
+     * @return Returns the default char.
+     */
+    public int getDefaultChar()
+    {
+        return defaultChar;
+    }
+
+    /**
+     * @param defaultChar The defaultChar to set.
+     */
+    public void setDefaultChar(int defaultChar)
+    {
+        this.defaultChar = defaultChar;
+    }
+
+    /**
+     * @return Returns the breakChar.
+     */
+    public int getBreakChar()
+    {
+        return breakChar;
+    }
+
+    /**
+     * @param breakChar The breakChar to set.
+     */
+    public void setBreakChar(int breakChar)
+    {
+        this.breakChar = breakChar;
+    }
+
+    /**
+     * @return Returns the maxContext.
+     */
+    public int getMaxContext()
+    {
+        return maxContext;
+    }
+
+    /**
+     * @param maxContext The MaxContext to set.
+     */
+    public void setMaxContext(int maxContext)
+    {
+        this.maxContext = maxContext;
+    }
+
     private int version;
     private short averageCharWidth;
     private int weightClass;
@@ -707,6 +787,11 @@ public class OS2WindowsMetricsTable extends TTFTable
     private int winDescent;
     private long codePageRange1 = -1;
     private long codePageRange2 = -1;
+    private int height = 0;
+    private int capHeight = 0;
+    private int defaultChar = 0;
+    private int breakChar = 32;
+    private int maxContext = 2;
 
     /**
      * A tag that identifies this table type.
@@ -757,6 +842,14 @@ public class OS2WindowsMetricsTable extends TTFTable
         {
             codePageRange1 = data.readUnsignedInt();
             codePageRange2 = data.readUnsignedInt();
+        }
+        if (version >= 2)
+        {
+            height = data.readSignedShort();
+            capHeight = data.readSignedShort();
+            defaultChar = data.readUnsignedShort();
+            breakChar = data.readUnsignedShort();
+            maxContext = data.readUnsignedShort();
         }
     }
 }

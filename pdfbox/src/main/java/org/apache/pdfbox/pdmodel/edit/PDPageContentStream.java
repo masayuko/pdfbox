@@ -41,6 +41,7 @@ import org.apache.pdfbox.pdmodel.PDResources;
 import org.apache.pdfbox.pdmodel.common.COSStreamArray;
 import org.apache.pdfbox.pdmodel.common.PDStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.apache.pdfbox.pdmodel.font.PDType0TTFont;
 import org.apache.pdfbox.pdmodel.graphics.color.PDColorSpace;
 import org.apache.pdfbox.pdmodel.graphics.color.PDDeviceCMYK;
 import org.apache.pdfbox.pdmodel.graphics.color.PDDeviceGray;
@@ -50,6 +51,7 @@ import org.apache.pdfbox.pdmodel.graphics.color.PDPattern;
 import org.apache.pdfbox.pdmodel.graphics.color.PDSeparation;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.pdmodel.graphics.PDXObject;
+import org.apache.pdfbox.util.StringUtil;
 
 /**
  * This class is a convenience for creating page content streams.  You MUST
@@ -556,6 +558,39 @@ public class PDPageContentStream
         appendRawCommands(buffer.toByteArray());
         appendRawCommands(SPACE);
         appendRawCommands(SHOW_TEXT);
+    }
+
+    public void drawStringByCID(PDType0TTFont font, String text) throws IOException
+    {
+        if (!inTextMode)
+        {
+            throw new IOException("Error: must call beginText() before drawString");
+        }
+
+        StringBuilder sb = new StringBuilder(text.length() * 4);
+        int cid; 
+        for (int i = 0, cp; i < text.length(); i += Character.charCount(cp)) {
+            cp = text.codePointAt(i);
+            cid = font.getCID(cp);
+            if (cid < 0x10000)
+            {
+                sb.append(StringUtil.toHex4(cid));
+            }
+            else
+            {
+                cid -= 0x10000;
+                int high = cid / 0x400 + 0xd800;
+                int low = cid % 0x400 + 0xdc00;
+                sb.append(StringUtil.toHex4(high));
+                sb.append(StringUtil.toHex4(low));
+            }
+        }
+
+        appendRawCommands("<"+sb.toString()+">");
+        appendRawCommands(SPACE);
+        appendRawCommands(SHOW_TEXT);
+
+        font.setUsedCodes(text);
     }
 
     /**

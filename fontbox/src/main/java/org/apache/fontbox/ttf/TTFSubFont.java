@@ -55,7 +55,7 @@ public class TTFSubFont
     private static final byte[] PAD_BUF = new byte[] {0,0,0};
     
     private final TrueTypeFont baseTTF;
-    private final String nameSuffix;
+    private final String namePrefix;
     private final CMAPEncodingEntry baseCmap;
     
     // A map of unicode char codes to glyph IDs of the original font.
@@ -65,16 +65,16 @@ public class TTFSubFont
     private final SortedSet<Integer> glyphIds;
     
     /**
-     * Constructs a subfont based on the given font using the given suffix.
+     * Constructs a subfont based on the given font using the given prefix.
      * 
      * @param baseFont the base font of the subfont
-     * @param suffix suffix used for the naming
+     * @param prefix prefix used for the naming
      * 
      */
-    public TTFSubFont(TrueTypeFont baseFont, String suffix) 
+    public TTFSubFont(TrueTypeFont baseFont, String prefix) 
     {
         baseTTF = baseFont;
-        nameSuffix = suffix;
+        namePrefix = prefix;
         characters = new TreeMap<Integer, Integer>();
         glyphIds = new TreeSet<Integer>();
         
@@ -90,7 +90,9 @@ public class TTFSubFont
                 break;
             }
         }
+
         baseCmap = unicodeCmap;
+
         // add notdef character.
         addCharCode(0);
     }
@@ -330,7 +332,7 @@ public class TTFSubFont
     {
         return nr.getPlatformId() == NameRecord.PLATFORM_WINDOWS 
                 && nr.getPlatformEncodingId() == NameRecord.PLATFORM_ENCODING_WINDOWS_UNICODE 
-                && nr.getLanguageId() == 0 
+                //&& nr.getLanguageId() == 0 (ex, DevaVuSans uses 0x0409(=1033) United States)
                 && nr.getNameId() >= 0 && nr.getNameId() < 7;
     }
     
@@ -413,9 +415,9 @@ public class TTFSubFont
                     }
                 }
                 String value = nr.getString();
-                if (nr.getNameId() == 6 && this.nameSuffix != null) 
+                if (nr.getNameId() == 6 && this.namePrefix != null) 
                 {
-                    value += this.nameSuffix;
+                    value = this.namePrefix + value;
                 }
                 names[j] = value.getBytes(charset);
                 ++j;
@@ -955,7 +957,8 @@ public class TTFSubFont
         writeUint32(dos,p.getMaxMemType42());
         writeUint32(dos,p.getMimMemType1());
         writeUint32(dos,p.getMaxMemType1());
-        writeUint16(dos,baseTTF.getHorizontalHeader().getNumberOfHMetrics());
+        //writeUint16(dos,baseTTF.getHorizontalHeader().getNumberOfHMetrics());
+        writeUint16(dos,glyphIds.size());
             
         List<String> additionalNames = new ArrayList<String>();
         Map<String,Integer> additionalNamesIndices = new HashMap<String,Integer>();

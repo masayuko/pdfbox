@@ -23,6 +23,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 /**
  * An encoding entry for a cmap.
  * 
@@ -31,6 +34,8 @@ import java.util.Map.Entry;
  */
 public class CMAPEncodingEntry
 {
+    private static final Log LOG = LogFactory.getLog(CMAPEncodingEntry.class);
+
     private static final long LEAD_OFFSET = 0xD800 - (0x10000 >> 10);
     private static final long SURROGATE_OFFSET = 0x10000 - (0xD800 << 10) - 0xDC00;
 
@@ -139,7 +144,7 @@ public class CMAPEncodingEntry
 
         glyphIdToCharacterCode = new int[numGlyphs];
         // -- Read all sub header
-        for (long i = 0; i <= nbGroups; ++i)
+        for (long i = 0; i < nbGroups; ++i)
         {
             long firstCode = data.readUnsignedInt();
             long endCode = data.readUnsignedInt();
@@ -228,7 +233,7 @@ public class CMAPEncodingEntry
     {
         long nbGroups = data.readUnsignedInt();
         glyphIdToCharacterCode = new int[numGlyphs];
-        for (long i = 0; i <= nbGroups; ++i)
+        for (long i = 0; i < nbGroups; ++i)
         {
             long firstCode = data.readUnsignedInt();
             long endCode = data.readUnsignedInt();
@@ -275,7 +280,7 @@ public class CMAPEncodingEntry
     protected void processSubtype13(TrueTypeFont ttf, TTFDataStream data, int numGlyphs) throws IOException
     {
         long nbGroups = data.readUnsignedInt();
-        for (long i = 0; i <= nbGroups; ++i)
+        for (long i = 0; i < nbGroups; ++i)
         {
             long firstCode = data.readUnsignedInt();
             long endCode = data.readUnsignedInt();

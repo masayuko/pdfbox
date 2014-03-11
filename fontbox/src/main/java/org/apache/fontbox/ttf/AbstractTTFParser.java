@@ -196,7 +196,7 @@ abstract class AbstractTTFParser
         }
     }
 
-    private TTFTable readTableDirectory(TTFDataStream raf) throws IOException
+    protected TTFTable readTableDirectory(TTFDataStream raf) throws IOException
     {
         TTFTable retval = null;
         String tag = raf.readString(4);

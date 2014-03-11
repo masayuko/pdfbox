@@ -204,4 +204,36 @@ public class PDCIDFontType2Font extends PDCIDFont
         return trueTypeFont;
     }
 
+    public void setCID2GID(COSBase map)
+    {
+        font.setItem(COSName.CID_TO_GID_MAP, map);
+
+        if (map != null && map instanceof COSStream)
+        {
+            hasCIDToGIDMap = Boolean.TRUE;
+        }
+        else
+        {
+            hasCIDToGIDMap = Boolean.FALSE;
+        }
+
+        if (map != null && map instanceof COSName)
+        {
+            hasIdentityCIDToGIDMap = Boolean.TRUE;
+        }
+        else
+        {
+            hasIdentityCIDToGIDMap = Boolean.FALSE;
+        }
+    }
+
+    public void resetCID2GID(COSBase map)
+    {
+        if (font.getItem(COSName.CID_TO_GID_MAP) != null)
+        {
+            font.removeItem(COSName.CID_TO_GID_MAP);
+        }
+        setCID2GID(map);
+    }
+
 }
