@@ -19,7 +19,8 @@ package org.apache.pdfbox.examples.pdmodel;
 
 import java.io.IOException;
 
-import org.apache.pdfbox.exceptions.COSVisitorException;
+import org.apache.pdfbox.exceptions.CryptographyException;
+import org.apache.pdfbox.exceptions.SignatureException;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.edit.PDPageContentStream;
@@ -35,7 +36,6 @@ import org.apache.pdfbox.pdmodel.font.PDTrueTypeFont;
  */
 public class HelloWorldTTF
 {
-
     /**
      * create the second sample document from the PDF file format specification.
      *
@@ -44,10 +44,9 @@ public class HelloWorldTTF
      * @param fontfile  The ttf-font file.
      *
      * @throws IOException If there is an error writing the data.
-     * @throws COSVisitorException If there is an error writing the PDF.
      */
-    public void doIt(final String file, final String message,
-            final String fontfile) throws IOException, COSVisitorException
+    public void doIt(final String file, final String message, final String fontfile)
+        throws IOException, CryptographyException, SignatureException
     {
 
         // the document

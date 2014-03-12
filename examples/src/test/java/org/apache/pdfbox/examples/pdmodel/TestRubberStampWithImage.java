@@ -17,6 +17,8 @@
 package org.apache.pdfbox.examples.pdmodel;
 
 import junit.framework.TestCase;
+import org.apache.pdfbox.exceptions.CryptographyException;
+import org.apache.pdfbox.exceptions.SignatureException;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,7 +28,8 @@ import java.io.IOException;
  */
 public class TestRubberStampWithImage extends TestCase
 {
-    public void test() throws IOException
+    public void test()
+            throws IOException, CryptographyException, SignatureException
     {
         String documentFile = "src/test/resources/org.apache.pdfbox.examples.pdmodel/document.pdf";
         String stampFile = "src/test/resources/org.apache.pdfbox.examples.pdmodel/stamp.jpg";

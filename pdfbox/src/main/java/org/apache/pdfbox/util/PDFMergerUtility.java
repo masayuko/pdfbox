@@ -34,7 +34,8 @@ import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.cos.COSNumber;
 import org.apache.pdfbox.cos.COSStream;
 import org.apache.pdfbox.cos.COSString;
-import org.apache.pdfbox.exceptions.COSVisitorException;
+import org.apache.pdfbox.exceptions.CryptographyException;
+import org.apache.pdfbox.exceptions.SignatureException;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentCatalog;
 import org.apache.pdfbox.pdmodel.PDDocumentInformation;
@@ -173,9 +174,9 @@ public class PDFMergerUtility
      * Merge the list of source documents, saving the result in the destination file.
      * 
      * @throws IOException If there is an error saving the document.
-     * @throws COSVisitorException If an error occurs while saving the destination file.
      */
-    public void mergeDocuments() throws IOException, COSVisitorException
+    public void mergeDocuments()
+            throws IOException, CryptographyException, SignatureException
     {
         PDDocument destination = null;
         InputStream sourceFile;

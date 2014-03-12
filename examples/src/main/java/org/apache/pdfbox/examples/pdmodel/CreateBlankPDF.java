@@ -18,8 +18,8 @@ package org.apache.pdfbox.examples.pdmodel;
 
 import java.io.IOException;
 
-import org.apache.pdfbox.exceptions.COSVisitorException;
-
+import org.apache.pdfbox.exceptions.CryptographyException;
+import org.apache.pdfbox.exceptions.SignatureException;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 
@@ -40,9 +40,9 @@ public class CreateBlankPDF
      * @param file The name of the file to write to.
      *
      * @throws IOException If there is an error writing the data.
-     * @throws COSVisitorException If there is an error while generating the document.
      */
-    public void create( String file ) throws IOException, COSVisitorException
+    public void create( String file )
+            throws IOException, CryptographyException, SignatureException
     {
         PDDocument document = null;
         try
@@ -69,9 +69,9 @@ public class CreateBlankPDF
      * @param args The command line arguments.
      *
      * @throws IOException If there is an error writing the document data.
-     * @throws COSVisitorException If there is an error generating the data.
      */
-    public static void main( String[] args ) throws IOException, COSVisitorException
+    public static void main( String[] args )
+            throws IOException, CryptographyException, SignatureException
     {
         if( args.length != 1 )
         {
