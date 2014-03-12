@@ -39,9 +39,7 @@ import org.apache.pdfbox.cos.COSInteger;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.cos.COSObject;
 import org.apache.pdfbox.cos.COSStream;
-import org.apache.pdfbox.exceptions.CryptographyException;
 import org.apache.pdfbox.exceptions.InvalidPasswordException;
-import org.apache.pdfbox.exceptions.SignatureException;
 import org.apache.pdfbox.io.RandomAccess;
 import org.apache.pdfbox.pdfparser.BaseParser;
 import org.apache.pdfbox.pdfparser.NonSequentialPDFParser;
@@ -51,14 +49,14 @@ import org.apache.pdfbox.pdmodel.common.COSArrayList;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.common.PDStream;
 import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
-import org.apache.pdfbox.pdmodel.encryption.BadSecurityHandlerException;
 import org.apache.pdfbox.pdmodel.encryption.DecryptionMaterial;
 import org.apache.pdfbox.pdmodel.encryption.PDEncryptionDictionary;
 import org.apache.pdfbox.pdmodel.encryption.ProtectionPolicy;
 import org.apache.pdfbox.pdmodel.encryption.SecurityHandler;
-import org.apache.pdfbox.pdmodel.encryption.SecurityHandlersManager;
+import org.apache.pdfbox.pdmodel.encryption.SecurityHandlerFactory;
 import org.apache.pdfbox.pdmodel.encryption.StandardDecryptionMaterial;
 import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
+import org.apache.pdfbox.pdmodel.encryption.StandardSecurityHandler;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAppearanceDictionary;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAppearanceStream;
@@ -265,10 +263,8 @@ public class PDDocument implements Closeable
      * @param sigObject is the PDSignature model
      * @param signatureInterface is a interface which provides signing capabilities
      * @throws IOException if there is an error creating required fields
-     * @throws SignatureException if something went wrong
      */
-    public void addSignature(PDSignature sigObject, SignatureInterface signatureInterface) throws IOException,
-            SignatureException
+    public void addSignature(PDSignature sigObject, SignatureInterface signatureInterface) throws IOException
     {
         SignatureOptions defaultOptions = new SignatureOptions();
         defaultOptions.setPage(1);
@@ -282,10 +278,9 @@ public class PDDocument implements Closeable
      * @param signatureInterface is a interface which provides signing capabilities
      * @param options signature options
      * @throws IOException if there is an error creating required fields
-     * @throws SignatureException if something went wrong
      */
     public void addSignature(PDSignature sigObject, SignatureInterface signatureInterface, SignatureOptions options)
-            throws IOException, SignatureException
+            throws IOException
     {
         // Reserve content
         // We need to reserve some space for the signature. Some signatures including
@@ -320,7 +315,7 @@ public class PDDocument implements Closeable
         PDPage page = null;
         if (size == 0)
         {
-            throw new SignatureException(SignatureException.INVALID_PAGE_FOR_SIGNATURE, "The PDF file has no pages");
+            throw new IllegalStateException("Cannot sign an empty document");
         }
         if (options.getPage() > size)
         {
@@ -489,8 +484,7 @@ public class PDDocument implements Closeable
 
             if (annotNotFound || sigFieldNotFound)
             {
-                throw new SignatureException(SignatureException.VISUAL_SIGNATURE_INVALID,
-                        "Could not read all needed objects from template");
+                throw new IllegalArgumentException("Template is missing required objects");
             }
         }
 
@@ -516,10 +510,9 @@ public class PDDocument implements Closeable
      * @param signatureInterface is a interface which provides signing capabilities
      * @param options signature options
      * @throws IOException if there is an error creating required fields
-     * @throws SignatureException
      */
     public void addSignatureField(List<PDSignatureField> sigFields, SignatureInterface signatureInterface,
-            SignatureOptions options) throws IOException, SignatureException
+            SignatureOptions options) throws IOException
     {
         PDDocumentCatalog catalog = getDocumentCatalog();
         catalog.getCOSObject().setNeedToBeUpdate(true);
@@ -857,54 +850,41 @@ public class PDDocument implements Closeable
     }
 
     /**
-     * This will decrypt a document. This method is provided for compatibility reasons only. User should use the new
+     * This will decrypt a document.
+     *
+     * @deprecated This method is provided for compatibility reasons only. User should use the new
      * security layer instead and the openProtection method especially.
      * 
      * @param password Either the user or owner password.
-     * 
-     * @throws CryptographyException If there is an error decrypting the document.
+     *
      * @throws IOException If there is an error getting the stream data.
      * @throws InvalidPasswordException If the password is not a user or owner password.
-     * 
      */
-    public void decrypt(String password) throws CryptographyException, IOException, InvalidPasswordException
+    @Deprecated
+    public void decrypt(String password) throws IOException, InvalidPasswordException
     {
-        try
-        {
-            StandardDecryptionMaterial m = new StandardDecryptionMaterial(password);
-            this.openProtection(m);
-            document.dereferenceObjectStreams();
-        }
-        catch (BadSecurityHandlerException e)
-        {
-            throw new CryptographyException(e);
-        }
+        StandardDecryptionMaterial m = new StandardDecryptionMaterial(password);
+        openProtection(m);
+        document.dereferenceObjectStreams();
     }
 
     /**
      * This will <b>mark</b> a document to be encrypted. The actual encryption will occur when the document is saved.
-     * This method is provided for compatibility reasons only. User should use the new security layer instead and the
+     *
+     * @deprecated This method is provided for compatibility reasons only. User should use the new security layer instead and the
      * openProtection method especially.
      * 
      * @param ownerPassword The owner password to encrypt the document.
      * @param userPassword The user password to encrypt the document.
-     * 
-     * @throws CryptographyException If an error occurs during encryption.
+
      * @throws IOException If there is an error accessing the data.
-     * 
      */
-    public void encrypt(String ownerPassword, String userPassword) throws CryptographyException, IOException
+    @Deprecated
+    public void encrypt(String ownerPassword, String userPassword)
+            throws IOException
     {
-        try
-        {
-            StandardProtectionPolicy policy = new StandardProtectionPolicy(ownerPassword, userPassword,
-                    new AccessPermission());
-            this.protect(policy);
-        }
-        catch (BadSecurityHandlerException e)
-        {
-            throw new CryptographyException(e);
-        }
+        securityHandler = new StandardSecurityHandler(
+                new StandardProtectionPolicy(ownerPassword, userPassword, new AccessPermission()));
     }
 
     /**
@@ -1193,11 +1173,8 @@ public class PDDocument implements Closeable
      * @param fileName The file to save as.
      *
      * @throws IOException if the output could not be written
-     * @throws CryptographyException if something went wrong during a cryptography operation
-     * @throws SignatureException if signing failed
      */
-    public void save(String fileName)
-            throws IOException, CryptographyException, SignatureException
+    public void save(String fileName) throws IOException
     {
         save(new File(fileName));
     }
@@ -1208,11 +1185,8 @@ public class PDDocument implements Closeable
      * @param file The file to save as.
      *
      * @throws IOException if the output could not be written
-     * @throws CryptographyException if something went wrong during a cryptography operation
-     * @throws SignatureException if signing failed
      */
-    public void save(File file)
-        throws IOException, CryptographyException, SignatureException
+    public void save(File file) throws IOException
     {
         save(new FileOutputStream(file));
     }
@@ -1223,11 +1197,8 @@ public class PDDocument implements Closeable
      * @param output The stream to write to.
      *
      * @throws IOException if the output could not be written
-     * @throws CryptographyException if something went wrong during a cryptography operation
-     * @throws SignatureException if signing failed
      */
-    public void save(OutputStream output)
-            throws IOException, CryptographyException, SignatureException
+    public void save(OutputStream output) throws IOException
     {
         // update the count in case any pages have been added behind the scenes.
         getDocumentCatalog().getPages().updateCount();
@@ -1252,11 +1223,8 @@ public class PDDocument implements Closeable
      * 
      * @param fileName the filename to be used
      * @throws IOException if the output could not be written
-     * @throws CryptographyException if something went wrong during a cryptography operation
-     * @throws SignatureException if signing failed
      */
-    public void saveIncremental(String fileName)
-            throws IOException, CryptographyException, SignatureException
+    public void saveIncremental(String fileName) throws IOException
     {
         saveIncremental(new FileInputStream(fileName), new FileOutputStream(fileName, true));
     }
@@ -1267,11 +1235,9 @@ public class PDDocument implements Closeable
      * @param input stream to read
      * @param output stream to write
      * @throws IOException if the output could not be written
-     * @throws CryptographyException if something went wrong during a cryptography operation
-     * @throws SignatureException if signing failed
      */
     public void saveIncremental(FileInputStream input, OutputStream output)
-            throws IOException, CryptographyException, SignatureException
+            throws IOException
     {
         // update the count in case any pages have been added behind the scenes.
         getDocumentCatalog().getPages().updateCount();
@@ -1348,18 +1314,19 @@ public class PDDocument implements Closeable
     /**
      * Protects the document with the protection policy pp. The document content will be really encrypted when it will
      * be saved. This method only marks the document for encryption.
-     * 
+     *
      * @see org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy
      * @see org.apache.pdfbox.pdmodel.encryption.PublicKeyProtectionPolicy
      * 
-     * @param pp The protection policy.
-     * 
-     * @throws BadSecurityHandlerException If there is an error during protection.
+     * @param policy The protection policy.
      */
-    public void protect(ProtectionPolicy pp) throws BadSecurityHandlerException
+    public void protect(ProtectionPolicy policy) throws IOException
     {
-        SecurityHandler handler = SecurityHandlersManager.getInstance().getSecurityHandler(pp);
-        securityHandler = handler;
+        securityHandler = SecurityHandlerFactory.INSTANCE.newSecurityHandlerForPolicy(policy);
+        if (securityHandler == null)
+        {
+            throw new IOException("No security handler for policy " + policy);
+        }
     }
 
     /**
@@ -1368,26 +1335,28 @@ public class PDDocument implements Closeable
      * @see org.apache.pdfbox.pdmodel.encryption.StandardDecryptionMaterial
      * @see org.apache.pdfbox.pdmodel.encryption.PublicKeyDecryptionMaterial
      * 
-     * @param pm The decryption material (password or certificate).
-     * 
-     * @throws BadSecurityHandlerException If there is an error during decryption.
+     * @param decryptionMaterial The decryption material (password or certificate).
+     *
      * @throws IOException If there is an error reading cryptographic information.
-     * @throws CryptographyException If there is an error during decryption.
      */
-    public void openProtection(DecryptionMaterial pm) throws BadSecurityHandlerException, IOException,
-            CryptographyException
+    public void openProtection(DecryptionMaterial decryptionMaterial) throws IOException
     {
-        PDEncryptionDictionary dict = this.getEncryptionDictionary();
-        if (dict.getFilter() != null)
+        PDEncryptionDictionary encryption = getEncryptionDictionary();
+        if (encryption.getFilter() != null)
         {
-            securityHandler = SecurityHandlersManager.getInstance().getSecurityHandler(dict.getFilter());
-            securityHandler.decryptDocument(this, pm);
+            securityHandler = SecurityHandlerFactory.INSTANCE.newSecurityHandler(encryption.getFilter());
+            if (securityHandler == null)
+            {
+                throw new IOException("No security handler for filter " + encryption.getFilter());
+            }
+
+            securityHandler.decryptDocument(this, decryptionMaterial);
             document.dereferenceObjectStreams();
             document.setEncryptionDictionary(null);
         }
         else
         {
-            throw new RuntimeException("This document does not need to be decrypted");
+            throw new IOException("The document is not encrypted");
         }
     }
 

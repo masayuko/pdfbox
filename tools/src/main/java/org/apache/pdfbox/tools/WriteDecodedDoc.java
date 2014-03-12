@@ -25,8 +25,6 @@ import org.apache.pdfbox.cos.COSBase;
 import org.apache.pdfbox.cos.COSObject;
 import org.apache.pdfbox.cos.COSStream;
 
-import org.apache.pdfbox.exceptions.CryptographyException;
-import org.apache.pdfbox.exceptions.SignatureException;
 import org.apache.pdfbox.pdmodel.PDDocument;
 
 import org.apache.pdfbox.exceptions.InvalidPasswordException;
@@ -58,13 +56,10 @@ public class WriteDecodedDoc
      * @param out The filename used for output.
      *
      * @throws IOException if the output could not be written
-     * @throws CryptographyException if something went wrong during a cryptography operation
-     * @throws SignatureException if signing failed
      * 
      * @deprecated use {@link WriteDecodedDoc#doIt(String, String, String, boolean)} instead.
      */
-    public void doIt(String in, String out)
-            throws IOException, CryptographyException, SignatureException
+    public void doIt(String in, String out) throws IOException
     {
         doIt(in, out, "", false);
     }
@@ -78,11 +73,9 @@ public class WriteDecodedDoc
      * @param useNonSeqParser use the non sequential parser
      *
      * @throws IOException if the output could not be written
-     * @throws CryptographyException if something went wrong during a cryptography operation
-     * @throws SignatureException if signing failed
      */
     public void doIt(String in, String out, String password, boolean useNonSeqParser)
-            throws IOException, CryptographyException, SignatureException
+            throws IOException
     {
         PDDocument doc = null;
         try
@@ -112,11 +105,6 @@ public class WriteDecodedDoc
                         {
                             System.err.println( "Wrong password!!" );
                         }
-                        return;
-                    }
-                    catch( org.apache.pdfbox.exceptions.CryptographyException e )
-                    {
-                        e.printStackTrace();
                         return;
                     }
                 }

@@ -31,8 +31,6 @@ import org.apache.pdfbox.cos.COSDictionary;
 import org.apache.pdfbox.cos.COSDocument;
 import org.apache.pdfbox.cos.COSName;
 
-import org.apache.pdfbox.exceptions.CryptographyException;
-import org.apache.pdfbox.exceptions.SignatureException;
 import org.apache.pdfbox.pdfparser.PDFParser;
 
 import org.apache.pdfbox.pdfwriter.COSWriter;
@@ -255,8 +253,7 @@ public class FDFDocument
      *
      * @throws IOException If there is an error saving the document.
      */
-    public void save( File fileName )
-            throws IOException, CryptographyException, SignatureException
+    public void save( File fileName ) throws IOException
     {
         save( new FileOutputStream( fileName ) );
     }
@@ -268,8 +265,7 @@ public class FDFDocument
      *
      * @throws IOException If there is an error saving the document.
      */
-    public void save( String fileName )
-            throws IOException, CryptographyException, SignatureException
+    public void save( String fileName ) throws IOException
     {
         save( new FileOutputStream( fileName ) );
     }
@@ -280,11 +276,8 @@ public class FDFDocument
      * @param output The stream to write to.
      *
      * @throws IOException If there is an error writing the document.
-     * @throws CryptographyException If there is an error writing the document.
-     * @throws SignatureException If there is an error writing the document.
      */
-    public void save( OutputStream output )
-            throws IOException, CryptographyException, SignatureException
+    public void save( OutputStream output ) throws IOException
     {
         COSWriter writer = null;
         try

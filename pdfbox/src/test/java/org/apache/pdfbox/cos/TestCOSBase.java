@@ -19,9 +19,6 @@ package org.apache.pdfbox.cos;
 
 import junit.framework.TestCase;
 
-import org.apache.pdfbox.exceptions.CryptographyException;
-import org.apache.pdfbox.exceptions.SignatureException;
-
 import java.io.IOException;
 
 /**
@@ -43,8 +40,7 @@ public abstract class TestCOSBase extends TestCase
     /**
      * Test accept() - tests the interface for visiting a document at the COS level.
      */
-    public abstract void testAccept()
-            throws IOException, CryptographyException, SignatureException;
+    public abstract void testAccept() throws IOException;
 
     /**
      * Tests isNeedToBeUpdate() and setNeedToBeUpdate() - tests the getter/setter methods.
@@ -70,8 +66,8 @@ public abstract class TestCOSBase extends TestCase
 
     /**
      * A simple utility function to compare two byte arrays.
-     * @param str1 the expected byte array
-     * @param str2 the byte array being compared
+     * @param byteArr1 the expected byte array
+     * @param byteArr2 the byte array being compared
      */
     protected void testByteArrays(byte[] byteArr1, byte[] byteArr2)
     {

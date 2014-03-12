@@ -33,8 +33,6 @@ import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.cos.COSStream;
 import org.apache.pdfbox.cos.ICOSVisitor;
 
-import org.apache.pdfbox.exceptions.CryptographyException;
-import org.apache.pdfbox.exceptions.SignatureException;
 import org.apache.pdfbox.io.RandomAccess;
 
 import org.apache.pdfbox.pdfparser.PDFStreamParser;
@@ -212,11 +210,8 @@ public class COSStreamArray extends COSStream
      * @param visitor The object to notify when visiting this object.
      * @return any object, depending on the visitor implementation, or null
      * @throws IOException if the output could not be written
-     * @throws CryptographyException if something went wrong during a cryptography operation
-     * @throws SignatureException if signing failed
      */
-    public Object accept(ICOSVisitor visitor)
-            throws IOException, CryptographyException, SignatureException
+    public Object accept(ICOSVisitor visitor) throws IOException
     {
         return streams.accept( visitor );
     }

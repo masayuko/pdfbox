@@ -22,14 +22,9 @@ import java.io.FileOutputStream;
 
 import java.util.List;
 
-import org.apache.pdfbox.exceptions.CryptographyException;
 import org.apache.pdfbox.exceptions.InvalidPasswordException;
-
-import org.apache.pdfbox.exceptions.SignatureException;
 import org.apache.pdfbox.pdmodel.PDDocument;
-
 import org.apache.pdfbox.pdfwriter.COSWriter;
-
 import org.apache.pdfbox.util.Splitter;
 
 /**
@@ -220,8 +215,7 @@ public class PDFSplit
         }
     }
 
-    private static final void writeDocument( PDDocument doc, String fileName )
-            throws IOException, CryptographyException, SignatureException
+    private static final void writeDocument( PDDocument doc, String fileName ) throws IOException
     {
         FileOutputStream output = null;
         COSWriter writer = null;

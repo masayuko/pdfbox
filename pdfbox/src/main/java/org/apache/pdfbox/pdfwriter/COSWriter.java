@@ -51,8 +51,6 @@ import org.apache.pdfbox.cos.COSObject;
 import org.apache.pdfbox.cos.COSStream;
 import org.apache.pdfbox.cos.COSString;
 import org.apache.pdfbox.cos.ICOSVisitor;
-import org.apache.pdfbox.exceptions.CryptographyException;
-import org.apache.pdfbox.exceptions.SignatureException;
 import org.apache.pdfbox.pdfparser.PDFXRefStream;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.encryption.SecurityHandler;
@@ -410,7 +408,7 @@ public class COSWriter implements ICOSVisitor
      *
      * @throws IOException If there is an error writing the data.
      */
-    protected void doWriteBody(COSDocument doc) throws IOException, CryptographyException, SignatureException
+    protected void doWriteBody(COSDocument doc) throws IOException
     {
         COSDictionary trailer = doc.getTrailer();
         COSDictionary root = (COSDictionary)trailer.getDictionaryObject( COSName.ROOT );
@@ -493,8 +491,7 @@ public class COSWriter implements ICOSVisitor
      *
      * @throws IOException if the output cannot be written
      */
-    public void doWriteObject( COSBase obj )
-            throws IOException, CryptographyException, SignatureException
+    public void doWriteObject( COSBase obj ) throws IOException
     {
         writtenObjects.add( obj );
         if(obj instanceof COSDictionary)
@@ -548,8 +545,7 @@ public class COSWriter implements ICOSVisitor
      *
      * @throws IOException If there is an IOError while writing the document.
      */
-    protected void doWriteTrailer(COSDocument doc)
-            throws IOException, CryptographyException, SignatureException
+    protected void doWriteTrailer(COSDocument doc) throws IOException
     {
         getStandardOutput().write(TRAILER);
         getStandardOutput().writeEOL();
@@ -647,8 +643,7 @@ public class COSWriter implements ICOSVisitor
         }
     }
 
-    private void doWriteXRefInc(COSDocument doc, long hybridPrev) throws IOException,
-            CryptographyException, SignatureException
+    private void doWriteXRefInc(COSDocument doc, long hybridPrev) throws IOException
     {
         if (doc.isXRefStream() || hybridPrev != -1)
         {
@@ -723,7 +718,7 @@ public class COSWriter implements ICOSVisitor
         }
     }
 
-    private void doWriteSignature(COSDocument doc) throws IOException, SignatureException
+    private void doWriteSignature(COSDocument doc) throws IOException
     {
         // need to calculate the ByteRange
         if (signaturePosition[0]>0 && byterangePosition[1] > 0)
@@ -891,8 +886,7 @@ public class COSWriter implements ICOSVisitor
     }
 
     @Override
-    public Object visitFromArray( COSArray obj )
-            throws IOException, CryptographyException, SignatureException
+    public Object visitFromArray( COSArray obj ) throws IOException
     {
         int count = 0;
         getStandardOutput().write(ARRAY_OPEN);
@@ -964,8 +958,7 @@ public class COSWriter implements ICOSVisitor
     }
 
     @Override
-    public Object visitFromDictionary(COSDictionary obj)
-            throws IOException, CryptographyException, SignatureException
+    public Object visitFromDictionary(COSDictionary obj) throws IOException
     {
         getStandardOutput().write(DICT_OPEN);
         getStandardOutput().writeEOL();
@@ -1058,8 +1051,7 @@ public class COSWriter implements ICOSVisitor
     }
 
     @Override
-    public Object visitFromDocument(COSDocument doc)
-            throws IOException, CryptographyException, SignatureException
+    public Object visitFromDocument(COSDocument doc) throws IOException
     {
         if(!incrementalUpdate)
         {
@@ -1153,8 +1145,7 @@ public class COSWriter implements ICOSVisitor
     }
 
     @Override
-    public Object visitFromStream(COSStream obj)
-            throws IOException, CryptographyException, SignatureException
+    public Object visitFromStream(COSStream obj) throws IOException
     {
         if (willEncrypt)
         {
@@ -1220,7 +1211,7 @@ public class COSWriter implements ICOSVisitor
     }
 
     @Override
-    public Object visitFromString(COSString obj) throws IOException, CryptographyException
+    public Object visitFromString(COSString obj) throws IOException
     {
         if(willEncrypt)
         {
@@ -1240,8 +1231,7 @@ public class COSWriter implements ICOSVisitor
      * @throws IOException If an error occurs while generating the data.
      * @param doc The document to write.
      */
-    public void write(COSDocument doc)
-            throws IOException, CryptographyException, SignatureException
+    public void write(COSDocument doc) throws IOException
     {
         PDDocument pdDoc = new PDDocument( doc );
         write( pdDoc );
@@ -1253,9 +1243,8 @@ public class COSWriter implements ICOSVisitor
      * @param doc The document to write.
      *
      * @throws IOException If an error occurs while generating the data.
-     * @throws CryptographyException If an error occurs while generating the data.
      */
-    public void write(PDDocument doc) throws IOException, CryptographyException, SignatureException
+    public void write(PDDocument doc) throws IOException
 	{
         Long idTime = doc.getDocumentId() == null ? System.currentTimeMillis() : 
                                                     doc.getDocumentId();

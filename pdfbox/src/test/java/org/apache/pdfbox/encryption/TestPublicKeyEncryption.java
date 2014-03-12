@@ -28,8 +28,6 @@ import java.security.cert.X509Certificate;
 import junit.framework.Assert;
 import junit.framework.TestCase;
 
-import org.apache.pdfbox.exceptions.CryptographyException;
-import org.apache.pdfbox.exceptions.SignatureException;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
 import org.apache.pdfbox.pdmodel.encryption.PublicKeyDecryptionMaterial;
@@ -129,11 +127,7 @@ public class TestPublicKeyEncryption extends TestCase
             Assert.assertTrue(encrypted.isEncrypted());
             encrypted.openProtection(decryption2);
             fail("No exception when using an incorrect decryption key");
-        } 
-        catch(CryptographyException expected) 
-        {
-            // do nothing
-        } 
+        }
         finally 
         {
             encrypted.close();
@@ -242,8 +236,7 @@ public class TestPublicKeyEncryption extends TestCase
      * @return reloaded document
      * @throws Exception if 
      */
-    private PDDocument reload(PDDocument doc)
-            throws IOException, CryptographyException, SignatureException, NoSuchAlgorithmException
+    private PDDocument reload(PDDocument doc) throws IOException, NoSuchAlgorithmException
     {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         doc.save(buffer);

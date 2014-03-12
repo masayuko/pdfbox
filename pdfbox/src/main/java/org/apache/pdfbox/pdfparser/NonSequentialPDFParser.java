@@ -50,7 +50,6 @@ import org.apache.pdfbox.cos.COSNumber;
 import org.apache.pdfbox.cos.COSObject;
 import org.apache.pdfbox.cos.COSStream;
 import org.apache.pdfbox.cos.COSString;
-import org.apache.pdfbox.exceptions.CryptographyException;
 import org.apache.pdfbox.io.IOUtils;
 import org.apache.pdfbox.io.PushBackInputStream;
 import org.apache.pdfbox.io.RandomAccess;
@@ -64,7 +63,7 @@ import org.apache.pdfbox.pdmodel.encryption.DecryptionMaterial;
 import org.apache.pdfbox.pdmodel.encryption.PDEncryptionDictionary;
 import org.apache.pdfbox.pdmodel.encryption.PublicKeyDecryptionMaterial;
 import org.apache.pdfbox.pdmodel.encryption.SecurityHandler;
-import org.apache.pdfbox.pdmodel.encryption.SecurityHandlersManager;
+import org.apache.pdfbox.pdmodel.encryption.SecurityHandlerFactory;
 import org.apache.pdfbox.pdmodel.encryption.StandardDecryptionMaterial;
 import org.apache.pdfbox.persistence.util.COSObjectKey;
 
@@ -416,7 +415,7 @@ public class NonSequentialPDFParser extends PDFParser
             {
                 PDEncryptionDictionary encParameters = new PDEncryptionDictionary(document.getEncryptionDictionary());
 
-                DecryptionMaterial decryptionMaterial = null;
+                DecryptionMaterial decryptionMaterial;
                 if (keyStoreFilename != null)
                 {
                     KeyStore ks = KeyStore.getInstance("PKCS12");
@@ -429,7 +428,11 @@ public class NonSequentialPDFParser extends PDFParser
                     decryptionMaterial = new StandardDecryptionMaterial(password);
                 }
 
-                securityHandler = SecurityHandlersManager.getInstance().getSecurityHandler(encParameters.getFilter());
+                securityHandler = SecurityHandlerFactory.INSTANCE.newSecurityHandler(encParameters.getFilter());
+                if (securityHandler == null)
+                {
+                    throw new IOException("No security handler for filter " + encParameters.getFilter());
+                }
                 securityHandler.prepareForDecryption(encParameters, document.getDocumentID(), decryptionMaterial);
 
                 AccessPermission permission = securityHandler.getCurrentAccessPermission();
@@ -1268,16 +1271,7 @@ public class NonSequentialPDFParser extends PDFParser
 
                         if (securityHandler != null)
                         {
-                            try
-                            {
-                                securityHandler.decryptStream(stream, objNr, objGenNr);
-                            }
-                            catch (CryptographyException ce)
-                            {
-                                throw new IOException("Error decrypting stream object " + objNr + ": "
-                                        + ce.getMessage()
-                                /* , ce // TODO: remove remark with Java 1.6 */);
-                            }
+                            securityHandler.decryptStream(stream, objNr, objGenNr);
                         }
                         pb = stream;
                     }
@@ -1404,15 +1398,7 @@ public class NonSequentialPDFParser extends PDFParser
      */
     protected final void decrypt(COSString str, long objNr, long objGenNr) throws IOException
     {
-        try
-        {
-            securityHandler.decryptString(str, objNr, objGenNr);
-        }
-        catch (CryptographyException ce)
-        {
-            throw new IOException("Error decrypting string: " + ce.getMessage()
-            /* , ce // TODO: remove remark with Java 1.6 */);
-        }
+        securityHandler.decryptString(str, objNr, objGenNr);
     }
 
     // ------------------------------------------------------------------------
