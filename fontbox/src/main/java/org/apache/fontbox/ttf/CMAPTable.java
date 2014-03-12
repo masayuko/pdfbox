@@ -75,6 +75,11 @@ public class CMAPTable extends TTFTable
      */
     public static final int ENCODING_JOHAB = 6;
 
+    /**
+     * An encoding constant.
+     */
+    public static final int ENCODING_UCS4 = 10;
+
     private CMAPEncodingEntry[] cmaps;
 
     /**
