@@ -83,6 +83,12 @@ public class TestImageIOUtils extends TestCase
             //TODO sometimes empty, sometimes correct?????
             //checkResolution(outDir + file.getName() + "-1." + imageType, (int) dpi);
 
+            // testing GIF
+            imageType = "gif";
+            writeImage(document, imageType, outDir + file.getName() + "-", ImageType.RGB, dpi);
+            //TODO 
+            //checkResolution(outDir + file.getName() + "-1." + imageType, (int) dpi);
+            
             // testing WBMP
             //TODO this doesn't work at all, am empty image is always created
             imageType = "wbmp";
@@ -125,11 +131,12 @@ public class TestImageIOUtils extends TestCase
         String inDir = "src/test/resources/input/ImageIOUtil";
         String outDir = "target/test-output/ImageIOUtil/";
 
-        if (!new File(outDir).mkdirs())
+        new File(outDir).mkdirs();
+        if (!new File(outDir).exists())
         {
             throw new IOException("could not create output directory");
         }
-
+        
         File[] testFiles = new File(inDir).listFiles(new FilenameFilter()
         {
             public boolean accept(File dir, String name)
@@ -227,7 +234,7 @@ public class TestImageIOUtils extends TestCase
      * checks whether the compression of a TIFF file is as expected.
      *
      * @param filename Filename
-     * @param the expected TIFF compression
+     * @param expectedCompression expected TIFF compression
      *
      * @throws IOException if something goes wrong
      */
