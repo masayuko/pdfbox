@@ -16,6 +16,7 @@
  */
 package org.apache.pdfbox.util;
 
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.DataInputStream;
 import java.io.File;
@@ -23,18 +24,18 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.stream.ImageInputStream;
 
-import junit.framework.Assert;
 import junit.framework.TestCase;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertTrue;
-import static junit.framework.TestCase.fail;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -75,24 +76,22 @@ public class TestImageIOUtils extends TestCase
             // testing JPG/JPEG
             imageType = "jpg";
             writeImage(document, imageType, outDir + file.getName() + "-", ImageType.RGB, dpi);
-            //TODO this one doesn't save the meta data
+            checkResolution(outDir + file.getName() + "-1." + imageType, (int) dpi);
 
             // testing BMP
             imageType = "bmp";
             writeImage(document, imageType, outDir + file.getName() + "-", ImageType.RGB, dpi);
-            //TODO sometimes empty, sometimes correct?????
-            //checkResolution(outDir + file.getName() + "-1." + imageType, (int) dpi);
+            checkResolution(outDir + file.getName() + "-1." + imageType, (int) dpi);
 
             // testing GIF
             imageType = "gif";
             writeImage(document, imageType, outDir + file.getName() + "-", ImageType.RGB, dpi);
-            //TODO 
-            //checkResolution(outDir + file.getName() + "-1." + imageType, (int) dpi);
+            // no META data posible for GIF, thus no test
             
             // testing WBMP
-            //TODO this doesn't work at all, am empty image is always created
             imageType = "wbmp";
-            writeImage(document, imageType, outDir + file.getName() + "-", ImageType.RGB, dpi);
+            writeImage(document, imageType, outDir + file.getName() + "-", ImageType.BINARY, dpi);
+            // no META data posible for WBMP, thus no test
 
             // testing TIFF
             imageType = "tif";
@@ -112,6 +111,70 @@ public class TestImageIOUtils extends TestCase
         }
     }
 
+    
+    /**
+     * Checks whether file image size and content are identical
+     * @param filename the filename where we just wrote to
+     * @param image the image that is to be checked
+     * @throws IOException if something goes wrong
+     */
+    private void checkImageFileSizeAndContent(String filename, BufferedImage image) 
+            throws IOException
+    {
+        BufferedImage newImage = ImageIO.read(new File(filename));
+        assertNotNull("File '" + filename + "' could not be read", newImage);
+        checkNotBlank(filename, newImage);
+        checkBufferedImageSize(filename, image, newImage);
+        for (int x = 0; x < image.getWidth(); ++x)
+        {
+            for (int y = 0; y < image.getHeight(); ++y)
+            {
+                if (image.getRGB(x, y) != newImage.getRGB(x, y))
+                {
+                    assertEquals("\"File '" + filename + "' has different pixel at (" + x + "," + y + ")", new Color(image.getRGB(x, y)), new Color(newImage.getRGB(x, y)));
+                }
+            }
+        }
+    }
+
+    /**
+     * Checks whether file image size is identical
+     * @param filename the filename where we just wrote to
+     * @param image the image that is to be checked
+     * @throws IOException if something goes wrong
+     */
+    private void checkImageFileSize(String filename, BufferedImage image) 
+            throws IOException
+    {
+        BufferedImage newImage = ImageIO.read(new File(filename));
+        assertNotNull("File '" + filename + "' could not be read", newImage);
+        checkNotBlank(filename, newImage);
+        checkBufferedImageSize(filename, image, newImage);
+    }
+
+    private void checkBufferedImageSize(String filename, 
+            BufferedImage image, BufferedImage newImage) throws IOException
+    {
+        assertEquals("File '" + filename + "' has different height after read", image.getHeight(), newImage.getHeight());
+        assertEquals("File '" + filename + "' has different width after read", image.getWidth(), newImage.getWidth());
+    }
+    
+    private void checkNotBlank (String filename, BufferedImage newImage)
+    {
+        // http://stackoverflow.com/a/5253698/535646
+        Set<Integer> colors = new HashSet<Integer>();
+        int w = newImage.getWidth();
+        int h = newImage.getHeight();
+        for (int x = 0; x < w; x++)
+        {
+            for (int y = 0; y < h; y++)
+            {
+                colors.add(newImage.getRGB(x, y));
+            }
+        }        
+        assertFalse("File '" + filename + "' has less than two colors", colors.size() < 2);
+    }
+
     private void writeImage(PDDocument document, String imageFormat, String outputPrefix,
                             ImageType imageType, float dpi) throws IOException
     {
@@ -119,9 +182,19 @@ public class TestImageIOUtils extends TestCase
         BufferedImage image = renderer.renderImageWithDPI(0, dpi, imageType);
         String fileName = outputPrefix + 1;
         LOG.info("Writing: " + fileName + "." + imageFormat);
-        ImageIOUtil.writeImage(image, imageFormat, fileName,  Math.round(dpi));
+        ImageIOUtil.writeImage(image, imageFormat, fileName, Math.round(dpi));
+        if ("jpg".equals(imageFormat) || "gif".equals(imageFormat))
+        {
+            // jpeg is lossy, gif has 256 colors, 
+            // so we can't check for content identity
+            checkImageFileSize(fileName + "." + imageFormat, image);
+        }
+        else
+        {
+            checkImageFileSizeAndContent(fileName + "." + imageFormat, image);
+        }
     }
-
+    
     /**
      * Test to validate image rendering of file set.
      * @throws Exception when there is an exception

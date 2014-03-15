@@ -17,14 +17,13 @@
 package org.apache.pdfbox.pdmodel.graphics.image;
 
 import java.awt.image.BufferedImage;
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Iterator;
 
-import org.apache.pdfbox.cos.COSDictionary;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.filter.MissingImageReaderException;
 import org.apache.pdfbox.io.IOUtils;
@@ -41,6 +40,7 @@ import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.plugins.jpeg.JPEGImageWriteParam;
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
+import org.apache.pdfbox.cos.COSStream;
 
 /**
  * Factory for creating a PDImageXObject containing a JPEG compressed image.
@@ -54,10 +54,12 @@ public final class JPEGFactory extends ImageFactory
 
     /**
      * Creates a new JPEG Image XObject from an input stream containing JPEG data.
+     * 
      * The input stream data will be preserved and embedded in the PDF file without modification.
      * @param document the document where the image will be created
      * @param stream a stream of JPEG data
      * @return a new Image XObject
+     * 
      * @throws IOException if the input stream cannot be read
      */
     public static PDImageXObject createFromStream(PDDocument document, InputStream stream)
@@ -93,9 +95,11 @@ public final class JPEGFactory extends ImageFactory
         // find suitable image reader
         Iterator readers = ImageIO.getImageReadersByFormatName("JPEG");
         ImageReader reader = null;
-        while(readers.hasNext()) {
-            reader = (ImageReader)readers.next();
-            if(reader.canReadRaster()) {
+        while (readers.hasNext())
+        {
+            reader = (ImageReader) readers.next();
+            if (reader.canReadRaster())
+            {
                 break;
             }
         }
@@ -167,40 +171,15 @@ public final class JPEGFactory extends ImageFactory
     {
         return createJPEG(document, image, quality, dpi);
     }
-
-    // Creates an Image XObject from a Buffered Image using JAI Image I/O
-    private static PDImageXObject createJPEG(PDDocument document, BufferedImage image,
-                                             float quality, int dpi) throws IOException
+    
+    private static void encodeImageToJPEGStream(BufferedImage image, float quality, int dpi, OutputStream out) 
+            throws IOException
     {
-        // extract alpha channel (if any)
-        BufferedImage awtColor = getColorImage(image);
-        BufferedImage awtAlpha = getAlphaImage(image);
-
-        // create XObject
-        PDImageXObject pdImage = new PDImageXObject(new PDStream(document), null);
-
-        // add DCT filter
-        COSDictionary dict = pdImage.getCOSStream();
-        pdImage.getCOSStream().setItem(COSName.FILTER, COSName.DCT_DECODE);
-
-        // alpha -> soft mask
-        if (awtAlpha != null)
-        {
-            PDImage xAlpha = JPEGFactory.createFromImage(document, awtAlpha, quality);
-            dict.setItem(COSName.SMASK, xAlpha);
-        }
-
-        // set properties (width, height, depth, color space, etc.)
-        setPropertiesFromAWT(awtColor, pdImage);
-
         // encode to JPEG
-        OutputStream out = null;
         ImageOutputStream ios = null;
         ImageWriter imageWriter = null;
         try
         {
-            out = pdImage.getCOSStream().createFilteredStream();
-
             // find JAI writer
             imageWriter = ImageIO.getImageWritersBySuffix("jpeg").next();
             ios = ImageIO.createImageOutputStream(out);
@@ -236,6 +215,36 @@ public final class JPEGFactory extends ImageFactory
                 imageWriter.dispose();
             }
         }
+    }
+
+    // Creates an Image XObject from a Buffered Image using JAI Image I/O
+    private static PDImageXObject createJPEG(PDDocument document, BufferedImage image,
+                                             float quality, int dpi) throws IOException
+    {
+        // extract alpha channel (if any)
+        BufferedImage awtColorImage = getColorImage(image);
+        BufferedImage awtAlphaImage = getAlphaImage(image);
+
+        // create XObject
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        encodeImageToJPEGStream(image, quality, dpi, bos);
+        ByteArrayInputStream byteStream = new ByteArrayInputStream(bos.toByteArray());
+        PDImageXObject pdImage = new PDImageXObject(new PDStream(document, byteStream, true), null);
+        
+        // add DCT filter
+        COSStream dict = pdImage.getCOSStream();
+        dict.setItem(COSName.FILTER, COSName.DCT_DECODE);
+
+        // alpha -> soft mask
+        if (awtAlphaImage != null)
+        {
+            encodeImageToJPEGStream(awtAlphaImage, quality, dpi, dict.createFilteredStream());
+            PDImage xAlpha = JPEGFactory.createFromImage(document, awtAlphaImage, quality);
+            dict.setItem(COSName.SMASK, xAlpha);
+        }
+
+        // set properties (width, height, depth, color space, etc.)
+        setPropertiesFromAWT(awtColorImage, pdImage);
 
         return pdImage;
     }

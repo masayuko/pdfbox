@@ -39,7 +39,6 @@ import org.apache.pdfbox.cos.COSInteger;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.cos.COSObject;
 import org.apache.pdfbox.cos.COSStream;
-import org.apache.pdfbox.exceptions.InvalidPasswordException;
 import org.apache.pdfbox.io.RandomAccess;
 import org.apache.pdfbox.pdfparser.BaseParser;
 import org.apache.pdfbox.pdfparser.NonSequentialPDFParser;
@@ -50,7 +49,8 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.common.PDStream;
 import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
 import org.apache.pdfbox.pdmodel.encryption.DecryptionMaterial;
-import org.apache.pdfbox.pdmodel.encryption.PDEncryptionDictionary;
+import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
+import org.apache.pdfbox.pdmodel.encryption.PDEncryption;
 import org.apache.pdfbox.pdmodel.encryption.ProtectionPolicy;
 import org.apache.pdfbox.pdmodel.encryption.SecurityHandler;
 import org.apache.pdfbox.pdmodel.encryption.SecurityHandlerFactory;
@@ -68,52 +68,39 @@ import org.apache.pdfbox.pdmodel.interactive.form.PDField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
 
 /**
- * This is the in-memory representation of the PDF document. You need to call close() on this object when you are done
- * using it!!
+ * This is the in-memory representation of the PDF document.
+ * The #close() method must be called once the document is no longer needed.
  * 
- * @author <a href="mailto:ben@benlitchfield.com">Ben Litchfield</a>
- * 
+ * @author Ben Litchfield
  */
 public class PDDocument implements Closeable
 {
-
     private COSDocument document;
 
     // cached values
     private PDDocumentInformation documentInformation;
     private PDDocumentCatalog documentCatalog;
 
-    // The encParameters will be cached here. When the document is decrypted then
-    // the COSDocument will not have an "Encrypt" dictionary anymore and this object
-    // must be used.
-    private PDEncryptionDictionary encParameters = null;
+    // the encryption will be cached here. When the document is decrypted then
+    // the COSDocument will not have an "Encrypt" dictionary anymore and this object must be used
+    private PDEncryption encryption;
 
-    /**
-     * The security handler used to decrypt / encrypt the document.
-     */
-    private SecurityHandler securityHandler = null;
+    // associates object ids with a page number. Used to determine the page number for bookmarks
+    // (or page numbers for anything else for which you have an object id for that matter)
+    private Map<String, Integer> pageMap;
 
-    /**
-     * This assocates object ids with a page number. It's used to determine the page number for bookmarks (or page
-     * numbers for anything else for which you have an object id for that matter).
-     */
-    private Map<String, Integer> pageMap = null;
+    // holds a flag which tells us if we should remove all security from this documents.
+    private boolean allSecurityToBeRemoved;
 
-    /**
-     * This will hold a flag which tells us if we should remove all security from this documents.
-     */
-    private boolean allSecurityToBeRemoved = false;
-
-    /**
-     * Keep tracking customized documentId for the trailer. If null, a new id will be generated for the document. This
-     * ID doesn't represent the actual documentId from the trailer.
-     */
+    // keep tracking customized documentId for the trailer. If null, a new id will be generated
+    // this ID doesn't represent the actual documentId from the trailer
     private Long documentId;
 
     private BaseParser parser; 
+
     /**
-     * Constructor, creates a new PDF Document with no pages. You need to add at least one page for the document to be
-     * valid.
+     * Creates an empty PDF document.
+     * You need to add at least one page for the document to be valid.
      * 
      * @throws IOException If there is an error creating this document.
      */
@@ -168,10 +155,8 @@ public class PDDocument implements Closeable
         }
     }
 
-    /**
-     * This will either add the page passed in, or, if it's a pointer to an array of pages, it'll recursivly call itself
-     * and process everything in the list.
-     */
+    // either adds the page passed in, or, if it's a pointer to an array of pages,
+    // it will recursively call itself and process everything in the list
     private void parseCatalogObject(COSObject thePageOrArrayObject)
     {
         COSBase arrayCountBase = thePageOrArrayObject.getItem(COSName.COUNT);
@@ -193,7 +178,7 @@ public class PDDocument implements Closeable
             // these cases occur when we have a page, not an array of pages
             String objStr = String.valueOf(thePageOrArrayObject.getObjectNumber().intValue());
             String genStr = String.valueOf(thePageOrArrayObject.getGenerationNumber().intValue());
-            getPageMap().put(objStr + "," + genStr, new Integer(getPageMap().size() + 1));
+            getPageMap().put(objStr + "," + genStr, getPageMap().size() + 1);
         }
         else
         {
@@ -201,29 +186,22 @@ public class PDDocument implements Closeable
             if (arrayCount == kidsCount)
             {
                 // process the kids... they're all references to pages
-                COSArray kidsArray = ((COSArray) kidsBase);
+                COSArray kidsArray = (COSArray) kidsBase;
                 for (int i = 0; i < kidsArray.size(); ++i)
                 {
                     COSObject thisObject = (COSObject) kidsArray.get(i);
                     String objStr = String.valueOf(thisObject.getObjectNumber().intValue());
                     String genStr = String.valueOf(thisObject.getGenerationNumber().intValue());
-                    getPageMap().put(objStr + "," + genStr, new Integer(getPageMap().size() + 1));
+                    getPageMap().put(objStr + "," + genStr, getPageMap().size() + 1);
                 }
             }
             else
             {
                 // this object is an array of references to other arrays
-                COSArray list = null;
-                if (kidsBase instanceof COSArray)
+                COSArray list = (COSArray) kidsBase;
+                for (int arrayCounter = 0; arrayCounter < list.size(); ++arrayCounter)
                 {
-                    list = ((COSArray) kidsBase);
-                }
-                if (list != null)
-                {
-                    for (int arrayCounter = 0; arrayCounter < list.size(); ++arrayCounter)
-                    {
-                        parseCatalogObject((COSObject) list.get(arrayCounter));
-                    }
+                    parseCatalogObject((COSObject) list.get(arrayCounter));
                 }
             }
         }
@@ -260,7 +238,7 @@ public class PDDocument implements Closeable
     /**
      * Add a signature.
      * 
-     * @param sigObject is the PDSignature model
+     * @param sigObject is the PDSignatureField model
      * @param signatureInterface is a interface which provides signing capabilities
      * @throws IOException if there is an error creating required fields
      */
@@ -274,7 +252,7 @@ public class PDDocument implements Closeable
     /**
      * This will add a signature to the document.
      * 
-     * @param sigObject is the PDSignature model
+     * @param sigObject is the PDSignatureField model
      * @param signatureInterface is a interface which provides signing capabilities
      * @param options signature options
      * @throws IOException if there is an error creating required fields
@@ -494,9 +472,12 @@ public class PDDocument implements Closeable
             annotations = new COSArrayList();
             page.setAnnotations(annotations);
         }
+
         // take care that page and acroforms do not share the same array (if so, we don't need to add it twice)
-        if (!((annotations instanceof COSArrayList) && (acroFormFields instanceof COSArrayList) && (((COSArrayList) annotations)
-                .toList().equals(((COSArrayList) acroFormFields).toList()))) && !checkFields)
+        if (!(annotations instanceof COSArrayList &&
+              acroFormFields instanceof COSArrayList &&
+              ((COSArrayList) annotations).toList().equals(((COSArrayList) acroFormFields).toList()) &&
+              checkFields))
         {
             annotations.add(signatureField.getWidget());
         }
@@ -761,43 +742,52 @@ public class PDDocument implements Closeable
     }
 
     /**
-     * This will get the encryption dictionary for this document. This will still return the parameters if the document
-     * was decrypted. If the document was never encrypted then this will return null. As the encryption architecture in
-     * PDF documents is plugable this returns an abstract class, but the only supported subclass at this time is a
-     * PDStandardEncryption object.
-     * 
+     * @deprecated Use {@link #getEncryption()} instead.
+     *
      * @return The encryption dictionary(most likely a PDStandardEncryption object)
-     * 
-     * @throws IOException If there is an error determining which security handler to use.
      */
-    public PDEncryptionDictionary getEncryptionDictionary() throws IOException
+    @Deprecated
+    public PDEncryption getEncryptionDictionary()
     {
-        if (encParameters == null)
+        return getEncryption();
+    }
+
+    /**
+     * This will get the encryption dictionary for this document. This will still return the parameters if the document
+     * was decrypted. As the encryption architecture in PDF documents is plugable this returns an abstract class,
+     * but the only supported subclass at this time is a
+     * PDStandardEncryption object.
+     *
+     * @return The encryption dictionary(most likely a PDStandardEncryption object)
+     */
+    public PDEncryption getEncryption()
+    {
+        if (encryption == null)
         {
             if (isEncrypted())
             {
-                encParameters = new PDEncryptionDictionary(document.getEncryptionDictionary());
+                encryption = new PDEncryption(document.getEncryptionDictionary());
             }
         }
-        return encParameters;
+        return encryption;
     }
 
     /**
      * This will set the encryption dictionary for this document.
      * 
-     * @param encDictionary The encryption dictionary(most likely a PDStandardEncryption object)
+     * @param encryption The encryption dictionary(most likely a PDStandardEncryption object)
      * 
      * @throws IOException If there is an error determining which security handler to use.
      */
-    public void setEncryptionDictionary(PDEncryptionDictionary encDictionary) throws IOException
+    public void setEncryptionDictionary(PDEncryption encryption) throws IOException
     {
-        encParameters = encDictionary;
+        this.encryption = encryption;
     }
 
     /**
      * This will return the last signature.
      * 
-     * @return the last signature as <code>PDSignature</code>.
+     * @return the last signature as <code>PDSignatureField</code>.
      * @throws IOException if no document catalog can be found.
      */
     public PDSignature getLastSignatureDictionary() throws IOException
@@ -835,7 +825,7 @@ public class PDDocument implements Closeable
     /**
      * Retrieve all signature dictionaries from the document.
      * 
-     * @return a <code>List</code> of <code>PDSignature</code>s
+     * @return a <code>List</code> of <code>PDSignatureField</code>s
      * @throws IOException if no document catalog can be found.
      */
     public List<PDSignature> getSignatureDictionaries() throws IOException
@@ -857,11 +847,11 @@ public class PDDocument implements Closeable
      * 
      * @param password Either the user or owner password.
      *
-     * @throws IOException If there is an error getting the stream data.
      * @throws InvalidPasswordException If the password is not a user or owner password.
+     * @throws IOException If there is an error getting the stream data.
      */
     @Deprecated
-    public void decrypt(String password) throws IOException, InvalidPasswordException
+    public void decrypt(String password) throws InvalidPasswordException, IOException
     {
         StandardDecryptionMaterial m = new StandardDecryptionMaterial(password);
         openProtection(m);
@@ -880,11 +870,15 @@ public class PDDocument implements Closeable
      * @throws IOException If there is an error accessing the data.
      */
     @Deprecated
-    public void encrypt(String ownerPassword, String userPassword)
-            throws IOException
+    public void encrypt(String ownerPassword, String userPassword) throws IOException
     {
-        securityHandler = new StandardSecurityHandler(
-                new StandardProtectionPolicy(ownerPassword, userPassword, new AccessPermission()));
+        if (!isEncrypted())
+        {
+            encryption = new PDEncryption();
+        }
+
+        getEncryption().setSecurityHandler(new StandardSecurityHandler(
+                new StandardProtectionPolicy(ownerPassword, userPassword, new AccessPermission())));
     }
 
     /**
@@ -1236,8 +1230,7 @@ public class PDDocument implements Closeable
      * @param output stream to write
      * @throws IOException if the output could not be written
      */
-    public void saveIncremental(FileInputStream input, OutputStream output)
-            throws IOException
+    public void saveIncremental(FileInputStream input, OutputStream output) throws IOException
     {
         // update the count in case any pages have been added behind the scenes.
         getDocumentCatalog().getPages().updateCount();
@@ -1288,26 +1281,26 @@ public class PDDocument implements Closeable
      * 
      * @throws IOException If there is an error releasing resources.
      */
+    @Override
     public void close() throws IOException
     {
-    	documentCatalog = null;
-    	documentInformation = null;
-    	encParameters = null;
-    	if (pageMap != null)
-    	{
-    		pageMap.clear();
-    		pageMap = null;
-    	}
-    	securityHandler = null;
-    	if (document != null)
-    	{
-	        document.close();
-	        document = null;
-    	}
+        documentCatalog = null;
+        documentInformation = null;
+        encryption = null;
+        if (pageMap != null)
+        {
+            pageMap.clear();
+            pageMap = null;
+        }
+        if (document != null)
+        {
+            document.close();
+            document = null;
+        }
         if (parser != null)
         {
-        	parser.clearResources();
-        	parser = null;
+            parser.clearResources();
+            parser = null;
         }
     }
 
@@ -1322,11 +1315,18 @@ public class PDDocument implements Closeable
      */
     public void protect(ProtectionPolicy policy) throws IOException
     {
-        securityHandler = SecurityHandlerFactory.INSTANCE.newSecurityHandlerForPolicy(policy);
+        if (!isEncrypted())
+        {
+            encryption = new PDEncryption();
+        }
+
+        SecurityHandler securityHandler = SecurityHandlerFactory.INSTANCE.newSecurityHandlerForPolicy(policy);
         if (securityHandler == null)
         {
             throw new IOException("No security handler for policy " + policy);
         }
+
+        getEncryption().setSecurityHandler(securityHandler);
     }
 
     /**
@@ -1341,22 +1341,15 @@ public class PDDocument implements Closeable
      */
     public void openProtection(DecryptionMaterial decryptionMaterial) throws IOException
     {
-        PDEncryptionDictionary encryption = getEncryptionDictionary();
-        if (encryption.getFilter() != null)
+        if (isEncrypted())
         {
-            securityHandler = SecurityHandlerFactory.INSTANCE.newSecurityHandler(encryption.getFilter());
-            if (securityHandler == null)
-            {
-                throw new IOException("No security handler for filter " + encryption.getFilter());
-            }
-
-            securityHandler.decryptDocument(this, decryptionMaterial);
+            getEncryption().getSecurityHandler().decryptDocument(this, decryptionMaterial);
             document.dereferenceObjectStreams();
             document.setEncryptionDictionary(null);
         }
         else
         {
-            throw new IOException("The document is not encrypted");
+            throw new IOException("Document is not encrypted");
         }
     }
 
@@ -1368,41 +1361,71 @@ public class PDDocument implements Closeable
      * 
      * @return the access permissions for the current user on the document.
      */
-
     public AccessPermission getCurrentAccessPermission()
     {
-        if (this.securityHandler == null)
+        if (isEncrypted() && getEncryption().hasSecurityHandler())
+        {
+            try
+            {
+                return getEncryption().getSecurityHandler().getCurrentAccessPermission();
+            }
+            catch (IOException e)
+            {
+                // will never happen because we checked hasSecurityHandler() first
+                throw new RuntimeException(e);
+            }
+        }
+        else
         {
             return AccessPermission.getOwnerAccessPermission();
         }
-        return securityHandler.getCurrentAccessPermission();
     }
 
     /**
      * Get the security handler that is used for document encryption.
-     * 
+     *
+     * @deprecated Use {@link #getEncryption()}.
+     * {@link org.apache.pdfbox.pdmodel.encryption.PDEncryption#getSecurityHandler()}
+     *
      * @return The handler used to encrypt/decrypt the document.
      */
+    @Deprecated
     public SecurityHandler getSecurityHandler()
     {
-        return securityHandler;
+        if (isEncrypted() && getEncryption().hasSecurityHandler())
+        {
+            try
+            {
+                return getEncryption().getSecurityHandler();
+            }
+            catch (IOException e)
+            {
+                // will never happen because we checked hasSecurityHandler() first
+                throw new RuntimeException(e);
+            }
+        }
+        else
+        {
+            return null;
+        }
     }
 
     /**
-     * Sets security handler if none is set already.
-     * 
-     * @param secHandler security handler to be assigned to document
-     * @return <code>true</code> if security handler was set, <code>false</code> otherwise (a security handler was
-     *         already set)
+     * @deprecated Use protection policies instead.
+     *
+     * @param securityHandler security handler to be assigned to document
+     * @return true if security handler was set
      */
-    public boolean setSecurityHandler(SecurityHandler secHandler)
+    @Deprecated
+    public boolean setSecurityHandler(SecurityHandler securityHandler)
     {
-        if (securityHandler == null)
+        if (isEncrypted())
         {
-            securityHandler = secHandler;
-            return true;
+            return false;
         }
-        return false;
+        encryption = new PDEncryption();
+        getEncryption().setSecurityHandler(securityHandler);
+        return true;
     }
 
     /**

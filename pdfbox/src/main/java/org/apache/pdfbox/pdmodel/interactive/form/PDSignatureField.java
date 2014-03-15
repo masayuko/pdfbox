@@ -29,15 +29,13 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * A class for handling the PDF field as a signature.
+ * A signature field is a form field that contains a digital signature.
  *
- * @author <a href="mailto:ben@benlitchfield.com">Ben Litchfield</a>
+ * @author Ben Litchfield
  * @author Thomas Chojecki
- * @version $Revision: 1.5 $
  */
 public class PDSignatureField extends PDField
 {
-
     /**
      * @see PDField#PDField(PDAcroForm,COSDictionary)
      *
@@ -45,7 +43,7 @@ public class PDSignatureField extends PDField
      * @param field The dictionary for the signature.
      * @throws IOException If there is an error while resolving partital name for the signature field
      */
-    public PDSignatureField( PDAcroForm theAcroForm, COSDictionary field) throws IOException
+    public PDSignatureField(PDAcroForm theAcroForm, COSDictionary field) throws IOException
     {
         super(theAcroForm,field);
         // dirty hack to avoid npe caused through getWidget() method
@@ -60,7 +58,7 @@ public class PDSignatureField extends PDField
      * @throws IOException If there is an error while resolving partial name for the signature field
      *         or getting the widget object.
      */
-    public PDSignatureField( PDAcroForm theAcroForm) throws IOException
+    public PDSignatureField(PDAcroForm theAcroForm) throws IOException
     {
         super( theAcroForm );
         getDictionary().setItem(COSName.FT, COSName.SIG);
@@ -90,7 +88,7 @@ public class PDSignatureField extends PDField
       {
         if(object instanceof PDSignatureField)
         {
-          sigNames.add(((PDSignatureField)object).getPartialName());
+          sigNames.add(((PDSignatureField) object).getPartialName());
         }
       }
 
@@ -107,13 +105,13 @@ public class PDSignatureField extends PDField
      * @param value The new value for the field.
      *
      * @throws IOException If there is an error creating the appearance stream.
-     * @deprecated use setSignature(PDSignature) instead
+     * @deprecated use setSignature(PDSignatureField) instead
      */
     @Override
     @Deprecated
     public void setValue(String value) throws IOException
     {
-        throw new RuntimeException( "Can't set signature as String, use setSignature(PDSignature) instead" );
+        throw new RuntimeException( "Can't set signature as String, use setSignature(PDSignatureField) instead" );
     }
 
     /**
@@ -139,15 +137,15 @@ public class PDSignatureField extends PDField
     @Override
     public String toString()
     {
-        return "PDSignature";
+        return "PDSignatureField";
     }
     
     /**
      * Add a signature dictionary to the signature field.
      * 
-     * @param value is the PDSignature 
+     * @param value is the PDSignatureField
      */
-    public void setSignature(PDSignature value) 
+    public void setSignature(PDSignature value)
     {
       getDictionary().setItem(COSName.V, value);
     }

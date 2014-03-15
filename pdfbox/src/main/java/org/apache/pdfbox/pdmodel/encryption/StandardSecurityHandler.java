@@ -26,7 +26,6 @@ import java.util.Arrays;
 import org.apache.pdfbox.cos.COSArray;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.cos.COSString;
-import org.apache.pdfbox.encryption.ARCFour;
 import org.apache.pdfbox.pdmodel.PDDocument;
 
 /**
@@ -60,7 +59,7 @@ public final class StandardSecurityHandler extends SecurityHandler
 
     private int revision = DEFAULT_REVISION;
     private StandardProtectionPolicy policy;
-    private ARCFour rc4 = new ARCFour();
+    private RC4Cipher rc4 = new RC4Cipher();
 
     /**
      * Constructor.
@@ -129,7 +128,7 @@ public final class StandardSecurityHandler extends SecurityHandler
     {
         document = doc;
 
-        PDEncryptionDictionary dictionary = document.getEncryptionDictionary();
+        PDEncryption dictionary = document.getEncryption();
         COSArray documentIDArray = document.getDocument().getDocumentID();
         
         prepareForDecryption(dictionary, documentIDArray, decryptionMaterial);
@@ -143,13 +142,13 @@ public final class StandardSecurityHandler extends SecurityHandler
      * Called from {@link #decryptDocument(PDDocument, DecryptionMaterial)}.
      * Only if decryption of single objects is needed this should be called instead.
      *
-     * @param encDictionary  encryption dictionary
+     * @param encryption  encryption dictionary
      * @param documentIDArray  document id
      * @param decryptionMaterial Information used to decrypt the document.
      *
      * @throws IOException If there is an error accessing data.
      */
-    public void prepareForDecryption(PDEncryptionDictionary encDictionary, COSArray documentIDArray,
+    public void prepareForDecryption(PDEncryption encryption, COSArray documentIDArray,
                                      DecryptionMaterial decryptionMaterial)
                                      throws IOException
     {
@@ -166,9 +165,9 @@ public final class StandardSecurityHandler extends SecurityHandler
             password = "";
         }
 
-        int dicPermissions = encDictionary.getPermissions();
-        int dicRevision = encDictionary.getRevision();
-        int dicLength = encDictionary.getLength()/8;
+        int dicPermissions = encryption.getPermissions();
+        int dicRevision = encryption.getRevision();
+        int dicLength = encryption.getLength()/8;
 
         //some documents may have not document id, see
         //test\encryption\encrypted_doc_no_id.pdf
@@ -184,10 +183,10 @@ public final class StandardSecurityHandler extends SecurityHandler
         }
 
         // we need to know whether the meta data was encrypted for password calculation
-        boolean encryptMetadata = encDictionary.isEncryptMetaData();
+        boolean encryptMetadata = encryption.isEncryptMetaData();
         
-        byte[] userKey = encDictionary.getUserKey();
-        byte[] ownerKey = encDictionary.getOwnerKey();
+        byte[] userKey = encryption.getUserKey();
+        byte[] ownerKey = encryption.getOwnerKey();
 
         if( isUserPassword(password.getBytes("ISO-8859-1"), userKey, ownerKey,
                            dicPermissions, documentIDBytes, dicRevision,
@@ -223,13 +222,12 @@ public final class StandardSecurityHandler extends SecurityHandler
         }
         else
         {
-            // TODO perhaps we could return a boolean to indicate if the password was correct
             throw new IOException("Cannot decrypt PDF, the password is incorrect");
         }
 
         // detect whether AES encryption is used. This assumes that the encryption algo is 
         // stored in the PDCryptFilterDictionary
-        PDCryptFilterDictionary stdCryptFilterDictionary =  encDictionary.getStdCryptFilterDictionary();
+        PDCryptFilterDictionary stdCryptFilterDictionary = encryption.getStdCryptFilterDictionary();
 
         if (stdCryptFilterDictionary != null)
         {
@@ -251,10 +249,10 @@ public final class StandardSecurityHandler extends SecurityHandler
     public void prepareDocumentForEncryption(PDDocument doc) throws IOException
     {
         document = doc;
-        PDEncryptionDictionary encryptionDictionary = document.getEncryptionDictionary();
+        PDEncryption encryptionDictionary = document.getEncryption();
         if(encryptionDictionary == null)
         {
-            encryptionDictionary = new PDEncryptionDictionary();
+            encryptionDictionary = new PDEncryption();
         }
         version = computeVersionNumber();
         revision = computeRevisionNumber();

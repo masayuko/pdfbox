@@ -17,7 +17,6 @@
 package org.apache.pdfbox.pdmodel.interactive.digitalsignature.visible;
 
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,15 +24,12 @@ import java.util.List;
 
 import javax.imageio.ImageIO;
 
-import org.apache.pdfbox.io.IOUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
-import org.bouncycastle.util.Arrays;
 
 /**
  * Builder for visible signature design.
- *
  * Uses use param() instead of setParam()
  *
  * @author Vakhtang Koroghlishvili
@@ -111,7 +107,6 @@ public class PDVisibleSignDesigner
      */
     private void calculatePageSize(PDDocument document, int page)
     {
-
         if (page < 1)
         {
             throw new IllegalArgumentException("First page of pdf is 1, not " + page);
@@ -120,19 +115,18 @@ public class PDVisibleSignDesigner
         List<?> pages = document.getDocumentCatalog().getAllPages();
         PDPage firstPage =(PDPage) pages.get(page - 1);
         PDRectangle mediaBox = firstPage.findMediaBox();
-        this.pageHeight(mediaBox.getHeight());
-        this.pageWidth = mediaBox.getWidth();
+        pageHeight(mediaBox.getHeight());
+        pageWidth = mediaBox.getWidth();
 
         float x = this.pageWidth;
         float y = 0;
-        this.pageWidth = this.pageWidth + y;
+        pageWidth = this.pageWidth + y;
         float tPercent = (100 * y / (x + y));
-        this.imageSizeInPercents = 100 - tPercent;
-
+        imageSizeInPercents = 100 - tPercent;
     }
 
     /**
-     * 
+     *
      * @param path  of image location
      * @return image Stream
      * @throws IOException
@@ -157,7 +151,7 @@ public class PDVisibleSignDesigner
     }
 
     /**
-     * 
+     *
      * @param x - x coordinate
      * @param y - y coordinate
      * @return Visible Signature Configuration Object
@@ -170,7 +164,7 @@ public class PDVisibleSignDesigner
     }
 
     /**
-     * 
+     *
      * @return xAxis - gets x coordinates
      */
     public float getxAxis()
@@ -179,7 +173,7 @@ public class PDVisibleSignDesigner
     }
 
     /**
-     * 
+     *
      * @param xAxis  - x coordinate 
      * @return Visible Signature Configuration Object
      */
@@ -190,7 +184,7 @@ public class PDVisibleSignDesigner
     }
 
     /**
-     * 
+     *
      * @return yAxis
      */
     public float getyAxis()
@@ -199,7 +193,7 @@ public class PDVisibleSignDesigner
     }
 
     /**
-     * 
+     *
      * @param yAxis
      * @return Visible Signature Configuration Object
      */

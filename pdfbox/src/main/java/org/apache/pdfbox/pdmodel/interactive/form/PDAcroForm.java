@@ -41,12 +41,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * This class represents the acroform of a PDF document.
+ * An interactive form, also known as an AcroForm.
  *
- * @author <a href="mailto:ben@benlitchfield.com">Ben Litchfield</a>
- * @version $Revision: 1.14 $
+ * @author Ben Litchfield
  */
-public class PDAcroForm implements COSObjectable
+public final class PDAcroForm implements COSObjectable
 {
     private COSDictionary acroForm;
     private PDDocument document;
@@ -58,7 +57,7 @@ public class PDAcroForm implements COSObjectable
      *
      * @param doc The document that this form is part of.
      */
-    public PDAcroForm( PDDocument doc )
+    public PDAcroForm(PDDocument doc)
     {
         document = doc;
         acroForm = new COSDictionary();
@@ -72,7 +71,7 @@ public class PDAcroForm implements COSObjectable
      * @param doc The document that this form is part of.
      * @param form The existing acroForm.
      */
-    public PDAcroForm( PDDocument doc, COSDictionary form )
+    public PDAcroForm(PDDocument doc, COSDictionary form)
     {
         document = doc;
         acroForm = form;
@@ -185,31 +184,29 @@ public class PDAcroForm implements COSObjectable
      * @return A list of all the fields.
      * @throws IOException If there is an error while getting the list of fields.
      */
-    public List getFields() throws IOException
+    public List<PDField> getFields() throws IOException
     {
-        List retval = null;
-        COSArray fields =
-            (COSArray) acroForm.getDictionaryObject(
-                COSName.getPDFName("Fields"));
+        COSArray cosFields = (COSArray) acroForm.getDictionaryObject(COSName.getPDFName("Fields"));
 
-        if( fields != null )
+        if( cosFields == null )
         {
-            List actuals = new ArrayList();
-            for (int i = 0; i < fields.size(); i++)
+            return null;
+        }
+
+        List<PDField> pdFields = new ArrayList<PDField>();
+        for (int i = 0; i < cosFields.size(); i++)
+        {
+            COSDictionary element = (COSDictionary) cosFields.getObject(i);
+            if (element != null)
             {
-                COSDictionary element = (COSDictionary) fields.getObject(i);
-                if (element != null)
+                PDField field = PDFieldFactory.createField( this, element );
+                if( field != null )
                 {
-                    PDField field = PDFieldFactory.createField( this, element );
-                    if( field != null )
-                    {
-                        actuals.add(field);
-                    }
+                    pdFields.add(field);
                 }
             }
-            retval = new COSArrayList( actuals, fields );
         }
-        return retval;
+        return new COSArrayList<PDField>( pdFields, cosFields );
     }
 
     /**
@@ -349,9 +346,7 @@ public class PDAcroForm implements COSObjectable
         acroForm.setItem( COSName.getPDFName( "DR" ), drDict );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public COSBase getCOSObject()
     {
         return acroForm;
@@ -362,13 +357,13 @@ public class PDAcroForm implements COSObjectable
      *
      * @return The xfa resource or null if it does not exist.
      */
-    public PDXFA getXFA()
+    public PDXFAResource getXFA()
     {
-        PDXFA xfa = null;
+        PDXFAResource xfa = null;
         COSBase base = acroForm.getDictionaryObject( "XFA" );
         if( base != null )
         {
-            xfa = new PDXFA( base );
+            xfa = new PDXFAResource( base );
         }
         return xfa;
     }
@@ -378,7 +373,7 @@ public class PDAcroForm implements COSObjectable
      *
      * @param xfa The xfa resource.
      */
-    public void setXFA( PDXFA xfa )
+    public void setXFA( PDXFAResource xfa )
     {
         acroForm.setItem( "XFA", xfa );
     }

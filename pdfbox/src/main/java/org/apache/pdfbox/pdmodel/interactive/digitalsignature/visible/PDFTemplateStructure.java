@@ -40,10 +40,9 @@ import org.apache.pdfbox.pdmodel.interactive.form.PDField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
 
 /**
- * Structure of PDF document with visible signature
+ * Structure of PDF document with visible signature.
  * 
- * @author <a href="mailto:vakhtang.koroghlishvili@gmail.com"> vakhtang koroghlishvili (gogebashvili) </a>
- * 
+ * @author Vakhtang Koroghlishvili
  */
 public class PDFTemplateStructure
 {
@@ -116,7 +115,7 @@ public class PDFTemplateStructure
     }
 
     /**
-     * Gets Acroform
+     * Gets AcroForm
      * @return
      */
     public PDAcroForm getAcroForm()
@@ -125,7 +124,7 @@ public class PDFTemplateStructure
     }
 
     /**
-     * Sets Acroform
+     * Sets AcroForm
      * @param acroForm
      */
     public void setAcroForm(PDAcroForm acroForm)
@@ -152,7 +151,7 @@ public class PDFTemplateStructure
     }
 
     /**
-     * Gets PDSignature
+     * Gets PDSignatureField
      * @return
      */
     public PDSignature getPdSignature()
@@ -161,7 +160,7 @@ public class PDFTemplateStructure
     }
 
     /**
-     * Sets PDSignature
+     * Sets PDSignatureField
      * @param pdSignature
      */
     public void setPdSignature(PDSignature pdSignature)
@@ -609,5 +608,4 @@ public class PDFTemplateStructure
     {
         this.widgetDictionary = widgetDictionary;
     }
-
 }

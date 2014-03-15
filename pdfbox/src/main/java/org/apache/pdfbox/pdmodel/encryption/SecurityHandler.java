@@ -47,7 +47,6 @@ import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.cos.COSObject;
 import org.apache.pdfbox.cos.COSStream;
 import org.apache.pdfbox.cos.COSString;
-import org.apache.pdfbox.encryption.ARCFour;
 import org.apache.pdfbox.pdmodel.PDDocument;
 
 /**
@@ -77,7 +76,7 @@ public abstract class SecurityHandler
     protected PDDocument document;
 
     /** The RC4 implementation used for cryptographic functions. */
-    protected ARCFour rc4 = new ARCFour();
+    protected RC4Cipher rc4 = new RC4Cipher();
 
     private final Set<COSBase> objects = new HashSet<COSBase>();
     private final Set<COSDictionary> potentialSignatures = new HashSet<COSDictionary>();
@@ -105,13 +104,13 @@ public abstract class SecurityHandler
      * If {@link #decryptDocument(PDDocument, DecryptionMaterial)} is used, this method is
      * called from there. Only if decryption of single objects is needed this should be called instead.
      *
-     * @param encDictionary  encryption dictionary, can be retrieved via {@link PDDocument#getEncryptionDictionary()}
+     * @param encryption  encryption dictionary, can be retrieved via {@link PDDocument#getEncryption()}
      * @param documentIDArray  document id which is returned via {@link COSDocument#getDocumentID()}
      * @param decryptionMaterial Information used to decrypt the document.
      *
      * @throws IOException If there is an error accessing data.
      */
-    public abstract void prepareForDecryption(PDEncryptionDictionary encDictionary, COSArray documentIDArray,
+    public abstract void prepareForDecryption(PDEncryption encryption, COSArray documentIDArray,
             DecryptionMaterial decryptionMaterial) throws IOException;
 
     /**
