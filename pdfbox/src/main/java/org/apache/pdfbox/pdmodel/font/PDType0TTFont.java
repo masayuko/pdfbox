@@ -72,14 +72,14 @@ public class PDType0TTFont extends PDType0Font
     /** Codes used in wrriten text */
     private TreeSet<Integer> usedCodes = new TreeSet<Integer>();
 
-    /** Default font width of the embedded font */
-    private long defaultW;
-
     /** Embedded font */
     private TTFSubFont subFont;
 
     /** Map from unicode to cid */
     private CMAPEncodingEntry unicode2cidMap;
+
+    /** font widths of original font */
+    private int[] widths;
 
     /** Use Unicode UCS-4 encoding for CMAP */
     private boolean useUCS4 = false;
@@ -126,15 +126,15 @@ public class PDType0TTFont extends PDType0Font
         PDFontDescriptorDictionary fd = new PDFontDescriptorDictionary();
         loadDescriptorDictionary(ttf, fd);
 
-        PDCIDFontType2Font desendant = new PDCIDFontType2Font();
-        desendant.setBaseFont(bfname);
-        desendant.setCIDSystemInfo(PDCIDSystemInfo.ADOBE_IDENTITY_0);
-        desendant.setFontDescriptor(fd);
-        desendant.setDefaultWidth(defaultW);
+        PDCIDFont descendant = new PDCIDFontType2Font();
+        descendant.setBaseFont(bfname);
+        descendant.setCIDSystemInfo(PDCIDSystemInfo.ADOBE_IDENTITY_0);
+        descendant.setFontDescriptor(fd);
+        descendant.setDefaultWidth(widths[0]);
 
         setBaseFont(bfname);
         setEncoding(COSName.IDENTITY_H);
-        setDescendantFont(desendant);
+        setDescendantFont(descendant);
 
     }
 
@@ -217,12 +217,12 @@ public class PDType0TTFont extends PDType0Font
             float scaling = 1000f / header.getUnitsPerEm();
 
             HorizontalMetricsTable hmtx = ttf.getHorizontalMetrics();
-            int[] widths = hmtx.getAdvanceWidth();
+            int[] subwidths = hmtx.getAdvanceWidth();
             StringBuilder sb = new StringBuilder();
             for (Integer gid : gidset)
             {
                 sb.append(" ").append(gid2cid.get(gid.intValue()))
-                  .append(" ").append(Math.round(widths[gid.intValue()] * scaling));
+                  .append(" ").append(Math.round(subwidths[gid.intValue()] * scaling));
             }
             COSArray wArray = descendantFont.getFontWidthsArray(sb.toString().substring(1));
             descendantFont.resetFontWidths(wArray);
@@ -249,7 +249,7 @@ public class PDType0TTFont extends PDType0Font
             NameRecord nr = records.get(i);
             if (nr.getNameId() == NameRecord.NAME_POSTSCRIPT_NAME)
             {
-                bfname = nr.getString();
+                bfname = prefix + nr.getString();
                 fd.setFontName(bfname);
             }
         }
@@ -389,13 +389,39 @@ public class PDType0TTFont extends PDType0Font
         }
         
         HorizontalMetricsTable hmtx = ttf.getHorizontalMetrics();
-        int[] widths = hmtx.getAdvanceWidth();
-        defaultW = Math.round(widths[0] * scaling);
+        widths = hmtx.getAdvanceWidth();
+        for (int i=0; i<widths.length; i++)
+        {
+            widths[i] =  Math.round(widths[i] * scaling);
+        }
     }
 
     public int getCID(int unicode)
     {
         return unicode2cidMap.getGlyphId(unicode);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public float getStringWidth(String string) throws IOException
+    {
+        float totalWidth = 0f;
+        for (int i = 0, cp; i < string.length(); i += Character.charCount(cp))
+        {
+            cp = string.codePointAt(i);
+            int gid = getCID(cp);
+            if (gid > -1 && gid < widths.length)
+            {
+                totalWidth += widths[gid];
+            }
+            else
+            {
+                totalWidth += widths[0];
+            }
+        }
+        return totalWidth;
     }
 
     private String getPrefix()

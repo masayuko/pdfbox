@@ -375,6 +375,14 @@ public class PDFStreamEngine
         int codeLength = 1;
         for (int i = 0; i < string.length; i += codeLength)
         {
+            // ignore BOM
+            if ((string[i] == (byte)0xfe && string[i+1] == (byte)0xff)
+             || (string[i] == (byte)0xff && string[i+1] == (byte)0xfe))
+            {
+                codeLength = 2;
+                continue;
+            }
+
             // Decode the value to a Unicode character
             codeLength = 1;
             String c = font.encode(string, i, codeLength);
@@ -383,6 +391,13 @@ public class PDFStreamEngine
             {
                 // maybe a multibyte encoding
                 codeLength++;
+                c = font.encode(string, i, codeLength);
+                codePoints = new int[] { font.getCodeFromArray(string, i, codeLength) };
+            }
+            if (c == null && i + 3 < string.length)
+            {
+                // maybe a multibyte encoding
+                codeLength += 2;
                 c = font.encode(string, i, codeLength);
                 codePoints = new int[] { font.getCodeFromArray(string, i, codeLength) };
             }

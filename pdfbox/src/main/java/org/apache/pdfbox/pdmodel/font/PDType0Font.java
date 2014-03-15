@@ -90,24 +90,6 @@ public class PDType0Font extends PDSimpleFont
     @Override
     public float getFontWidth(byte[] c, int offset, int length) throws IOException
     {
-        if (descendantFont instanceof PDCIDFontType2Font)
-        {
-            // a suitable mapping is needed to address the correct width value
-            PDCIDFontType2Font cidType2Font = (PDCIDFontType2Font) descendantFont;
-            int code = getCodeFromArray(c, offset, length);
-            if (cidType2Font.hasIdentityCIDToGIDMap() || cidType2Font.hasCIDToGIDMap())
-            {
-                return cidType2Font.getFontWidth(code);
-            }
-            else if (getCMap() != null)
-            {
-                String mappedString = getCMap().lookup(code, length);
-                if (mappedString != null)
-                {
-                    return cidType2Font.getFontWidth(mappedString.codePointAt(0));
-                }
-            }
-        }
         return descendantFont.getFontWidth(c, offset, length);
     }
 

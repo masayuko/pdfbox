@@ -560,6 +560,31 @@ public class PDPageContentStream
         appendRawCommands(SHOW_TEXT);
     }
 
+    /**
+     * This will draw a Unicode string as is.
+     *
+     * @param text The text to draw.
+     * @throws IOException If an io exception occurs.
+     */
+    public void drawUnicodeString(String text) throws IOException
+    {
+        if (!inTextMode)
+        {
+            throw new IOException("Error: must call beginText() before drawString");
+        }
+
+        byte[] codes = text.getBytes("UTF-16BE");
+        StringBuilder sb = new StringBuilder(codes.length * 2);
+        for (int i = 0; i < codes.length; i++)
+        {
+            sb.append(String.format("%02X", codes[i]));
+        }
+
+        appendRawCommands("<"+sb.toString()+">");
+        appendRawCommands(SPACE);
+        appendRawCommands(SHOW_TEXT);
+    }
+
     public void drawStringByCID(PDType0TTFont font, String text) throws IOException
     {
         if (!inTextMode)

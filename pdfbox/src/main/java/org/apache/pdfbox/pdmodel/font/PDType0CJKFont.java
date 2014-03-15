@@ -60,70 +60,75 @@ public class PDType0CJKFont extends PDType0Font
         loadSupportedFonts("org/apache/pdfbox/resources/cjk/supported_fonts.properties");
     }
 
-    private static final Map<String, PDFont> CACHED_FONTS = new HashMap<String, PDFont>();
+    public static final PDType0CJKFont JAPANESE_GOTHIC = new PDType0CJKFont("KozGoPr6N-Medium");
 
-    public static PDFont getFont(String fontName) throws IOException
+    public static final PDType0CJKFont JAPANESE_MINCHO = new PDType0CJKFont("KozMinPr6N-Regular");
+
+    public static final PDType0CJKFont SIMPLIFIED_CHINESE_GOTHIC = new PDType0CJKFont("AdobeHeitiStd-Regular");
+
+    public static final PDType0CJKFont SIMPLIFIED_CHINESE_MINCHO = new PDType0CJKFont("AdobeSongStd-Light");
+
+    public static final PDType0CJKFont TRADITIONAL_CHINESE_GOTHIC = new PDType0CJKFont("AdobeFanHeitiStd-Bold");
+
+    public static final PDType0CJKFont TRADITIONAL_CHINESE_MINCHO = new PDType0CJKFont("AdobeMingStd-Light");
+
+    public static final PDType0CJKFont KOREAN_GOTHIC = new PDType0CJKFont("AdobeGothicStd-Bold");
+
+    public static final PDType0CJKFont KOREAN_MINCHO = new PDType0CJKFont("AdobeMyungjoStd-Medium");
+
+
+    public PDType0CJKFont(String fontName)
     {
-        if (!SUPPORTED_FONTS.containsKey(fontName))
+        super();
+
+        try
         {
-            throw new IOException(fontName+" is not supported");
+            if (!SUPPORTED_FONTS.containsKey(fontName))
+            {
+                throw new IOException(fontName+" is not supported");
+            }
+    
+            String path = String.format("org/apache/pdfbox/resources/cjk/%s.properties", fontName);
+            Properties fontProperties = ResourceLoader.loadProperties(path, false);
+            if (fontProperties == null)
+            {
+                throw new MissingResourceException("Font properties not found: " + path, PDType0CJKFont.class.getName(), path);
+            }
+    
+            PDFontDescriptorDictionary fd = new PDFontDescriptorDictionary();
+            fd.setFontName(fontName);
+            fd.setFlags(Integer.valueOf(fontProperties.getProperty("Flags")).intValue());
+    
+            String fontBBox = fontProperties.getProperty("FontBBox");
+            String[] bb = fontBBox.substring(1, fontBBox.length() - 1).split(" ");
+            BoundingBox bbox = new BoundingBox();
+            bbox.setLowerLeftX(Integer.valueOf(bb[0]).intValue());
+            bbox.setLowerLeftY(Integer.valueOf(bb[1]).intValue());
+            bbox.setUpperRightX(Integer.valueOf(bb[2]).intValue());
+            bbox.setUpperRightY(Integer.valueOf(bb[3]).intValue());
+            fd.setFontBoundingBox(new PDRectangle(bbox));
+    
+            fd.setItalicAngle(Integer.valueOf(fontProperties.getProperty("ItalicAngle")).intValue());
+            fd.setAscent(Integer.valueOf(fontProperties.getProperty("Ascent")).intValue());
+            fd.setDescent(Integer.valueOf(fontProperties.getProperty("Descent")).intValue());
+            fd.setCapHeight(Integer.valueOf(fontProperties.getProperty("CapHeight")).intValue());
+            fd.setStemV(Integer.valueOf(fontProperties.getProperty("StemV")).intValue());
+    
+            PDCIDFont cid = new PDCIDFontType0Font();
+            cid.setBaseFont(fontName);
+            cid.setCIDSystemInfo(new PDCIDSystemInfo(fontProperties.getProperty("CIDSystemInfo")));
+            cid.setFontDescriptor(fd);
+            cid.setDefaultWidth(Integer.valueOf(fontProperties.getProperty("DW")).intValue());
+            cid.setFontWidths(fontProperties.getProperty("W"));
+    
+            setBaseFont(fontName);
+            setEncoding(COSName.getPDFName(fontProperties.getProperty("Encoding")));
+            setDescendantFont(cid);
         }
-
-        PDFont font = null;
-        if (CACHED_FONTS.containsKey(fontName))
+        catch (IOException e)
         {
-            font = CACHED_FONTS.get(fontName);
+            LOG.error("Something went wrong when constructing PDType0CJKFont", e);
         }
-        else
-        {
-            font = makeFont(fontName);
-            CACHED_FONTS.put(fontName, font);
-        }
-
-        return font;
-    }
-
-    private static PDFont makeFont(String fontName) throws IOException
-    {
-        String path = String.format("org/apache/pdfbox/resources/cjk/%s.properties", fontName);
-        Properties fontProperties = ResourceLoader.loadProperties(path, false);
-        if (fontProperties == null)
-        {
-            throw new MissingResourceException("Font properties not found: " + path, PDType0CJKFont.class.getName(), path);
-        }
-
-        PDFontDescriptorDictionary fd = new PDFontDescriptorDictionary();
-        fd.setFontName(fontName);
-        fd.setFlags(Integer.valueOf(fontProperties.getProperty("Flags")).intValue());
-
-        String fontBBox = fontProperties.getProperty("FontBBox");
-        String[] bb = fontBBox.substring(1, fontBBox.length() - 2).split(" ");
-        BoundingBox bbox = new BoundingBox();
-        bbox.setLowerLeftX(Integer.valueOf(bb[0]).intValue());
-        bbox.setLowerLeftY(Integer.valueOf(bb[1]).intValue());
-        bbox.setUpperRightX(Integer.valueOf(bb[2]).intValue());
-        bbox.setUpperRightY(Integer.valueOf(bb[3]).intValue());
-        fd.setFontBoundingBox(new PDRectangle(bbox));
-
-        fd.setItalicAngle(Integer.valueOf(fontProperties.getProperty("ItalicAngle")).intValue());
-        fd.setAscent(Integer.valueOf(fontProperties.getProperty("Ascent")).intValue());
-        fd.setDescent(Integer.valueOf(fontProperties.getProperty("Descent")).intValue());
-        fd.setCapHeight(Integer.valueOf(fontProperties.getProperty("CapHeight")).intValue());
-        fd.setStemV(Integer.valueOf(fontProperties.getProperty("StemV")).intValue());
-
-        PDCIDFontType0Font cid = new PDCIDFontType0Font();
-        cid.setBaseFont(fontName);
-        cid.setCIDSystemInfo(new PDCIDSystemInfo(fontProperties.getProperty("CIDSystemInfo")));
-        cid.setFontDescriptor(fd);
-        cid.setDefaultWidth(Integer.valueOf(fontProperties.getProperty("DW")).intValue());
-        cid.setFontWidths(fontProperties.getProperty("W"));
-
-        PDType0Font font = new PDType0Font();
-        font.setBaseFont(fontName);
-        font.setEncoding(COSName.getPDFName(fontProperties.getProperty("Encoding")));
-        font.setDescendantFont(cid);
-
-        return font;
     }
 
     private static void loadSupportedFonts(String location)
