@@ -22,6 +22,7 @@ import java.io.IOException;
 import junit.framework.TestCase;
 import org.apache.pdfbox.cos.COSDictionary;
 import org.apache.pdfbox.cos.COSName;
+import org.apache.pdfbox.util.ImageIOUtil;
 
 /**
  * Unit tests for PDInlineImage
@@ -57,5 +58,8 @@ public class PDInlineImageTest extends TestCase
         BufferedImage image = inlineImage.getImage();
         assertEquals(30, image.getWidth());
         assertEquals(28, image.getHeight());
+        
+        boolean writeOk = ImageIOUtil.writeImage(image, "png", new NullOutputStream());
+        assertTrue(writeOk);
     }
 }
