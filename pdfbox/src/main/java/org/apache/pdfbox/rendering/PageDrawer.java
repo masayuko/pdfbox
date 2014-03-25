@@ -126,6 +126,15 @@ public class PageDrawer extends PDFStreamEngine
     }
 
     /**
+     * Returns the page height.
+     * @return the page height
+     */
+    public int getPageHeight()
+    {
+        return pageHeight;
+    }
+
+    /**
      * This will draw the page to the requested context.
      * 
      * @param g The graphics context to draw onto.
@@ -708,19 +717,19 @@ public class PageDrawer extends PDFStreamEngine
     }
 
     /**
-     * Strokes and fills the path.
+     * Fills and then strokes the path.
      *
      * @param windingRule The winding rule this path will use.
      *
      * @throws IOException If there is an IO error while filling the path.
      */
-    public void strokeAndFillPath(int windingRule) throws IOException
+    public void fillAndStrokePath(int windingRule) throws IOException
     {
         // TODO can we avoid cloning the path?
         GeneralPath path = (GeneralPath)linePath.clone();
-        strokePath();
-        linePath = path;
         fillPath(windingRule);
+        linePath = path;
+        strokePath();
     }
 
     // This code generalizes the code Jim Lynch wrote for AppendRectangleToPath

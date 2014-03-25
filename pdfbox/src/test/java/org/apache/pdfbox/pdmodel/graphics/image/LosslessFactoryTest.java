@@ -15,45 +15,118 @@
  */
 package org.apache.pdfbox.pdmodel.graphics.image;
 
+import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import javax.imageio.ImageIO;
 import junit.framework.TestCase;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.util.ImageIOUtil;
+import static org.apache.pdfbox.pdmodel.graphics.image.ValidateXImage.validate;
 
 /**
- * Unit tests for JPEGFactory
+ * Unit tests for LosslessFactory
  *
  * @author Tilman Hausherr
  */
 public class LosslessFactoryTest extends TestCase
 {
     /**
-     * Tests LosslessFactoryTest#createFromImage(PDDocument document,
+     * Tests RGB LosslessFactoryTest#createFromImage(PDDocument document,
      * BufferedImage image)
+     *
+     * @throws java.io.IOException
      */
-    public void testCreateLosslessFromImage() throws IOException
+    public void testCreateLosslessFromImageRGB() throws IOException
     {
         PDDocument document = new PDDocument();
-        BufferedImage image = ImageIO.read(JPEGFactoryTest.class.getResourceAsStream("png.png"));
+        BufferedImage image = ImageIO.read(this.getClass().getResourceAsStream("png.png"));
+
         PDImageXObject ximage = LosslessFactory.createFromImage(document, image);
-        assertNotNull(ximage);
-        assertNotNull(ximage.getCOSStream());
-        assertTrue(ximage.getCOSStream().getFilteredLength() > 0);
-        assertEquals(8, ximage.getBitsPerComponent());
-        assertEquals(344, ximage.getWidth());
-        assertEquals(287, ximage.getHeight());
-        assertEquals("png", ximage.getSuffix());
+        validate(ximage, 8, 344, 287, "png");
+        checkIdent(image, ximage.getImage());
 
-        // check the image
-        assertNotNull(ximage.getImage());
-        assertEquals(ximage.getWidth(), ximage.getImage().getWidth());
-        assertEquals(ximage.getHeight(), ximage.getImage().getHeight());
+        // Create a grayscale image
+        BufferedImage grayImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
+        Graphics g = grayImage.getGraphics();
+        g.drawImage(image, 0, 0, null);
+        g.dispose();
+        ximage = LosslessFactory.createFromImage(document, grayImage);
+        validate(ximage, 8, 344, 287, "png");
+        checkIdent(grayImage, ximage.getImage());
 
-        boolean writeOk = ImageIOUtil.writeImage(ximage.getImage(), "png", new NullOutputStream());
-        assertTrue(writeOk);
+        // Create a bitonal image
+        BufferedImage bitonalImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_BYTE_BINARY);
+        g = bitonalImage.getGraphics();
+        g.drawImage(image, 0, 0, null);
+        g.dispose();
+        ximage = LosslessFactory.createFromImage(document, bitonalImage);
+        validate(ximage, 1, 344, 287, "png");
+        checkIdent(bitonalImage, ximage.getImage());
+
+        document.close();
+
+    }
+
+    /**
+     * Tests ARGB LosslessFactoryTest#createFromImage(PDDocument document,
+     * BufferedImage image)
+     *
+     * @throws java.io.IOException
+     */
+    public void testCreateLosslessFromImageARGB() throws IOException
+    {
+        PDDocument document = new PDDocument();
+        BufferedImage image = ImageIO.read(this.getClass().getResourceAsStream("png.png"));
+
+        // create an ARGB image
+        int w = image.getWidth();
+        int h = image.getHeight();
+        BufferedImage argbImage = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+        Graphics ag = argbImage.getGraphics();
+        ag.drawImage(image, 0, 0, null);
+        ag.dispose();
+
+        // create a weird transparency triangle
+        for (int y = 0; y < h; ++y)
+        {
+            for (int x = 0; x < Math.min(y, w); ++x)
+            {
+                argbImage.setRGB(x, y, image.getRGB(x, y) & 0xFFFFFF | ((x * 255 / w) << 24));
+            }
+        }
+
+        PDImageXObject ximage = LosslessFactory.createFromImage(document, argbImage);
+        validate(ximage, 8, 344, 287, "png");
+
+        assertNotNull(ximage.getSoftMask());
+        validate(ximage.getSoftMask(), 8, 344, 287, "png");
 
         document.close();
     }
+
+    /**
+     * Check whether images are identical.
+     *
+     * @param expectedImage
+     * @param actualImage
+     */
+    private void checkIdent(BufferedImage expectedImage, BufferedImage actualImage)
+    {
+        String errMsg = "";
+
+        int w = expectedImage.getWidth();
+        int h = expectedImage.getHeight();
+        for (int y = 0; y < h; ++y)
+        {
+            for (int x = 0; x < w; ++x)
+            {
+                if (expectedImage.getRGB(x, y) != actualImage.getRGB(x, y))
+                {
+                    errMsg = String.format("(%d,%d) %X != %X", x, y, expectedImage.getRGB(x, y), actualImage.getRGB(x, y));
+                }
+                assertEquals(errMsg, expectedImage.getRGB(x, y), actualImage.getRGB(x, y));
+            }
+        }
+    }
+
 }
