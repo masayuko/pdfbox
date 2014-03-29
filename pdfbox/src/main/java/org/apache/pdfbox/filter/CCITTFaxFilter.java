@@ -53,27 +53,6 @@ final class CCITTFaxFilter extends Filter
         COSDictionary decodeParms = (COSDictionary)
                 parameters.getDictionaryObject(COSName.DECODE_PARMS, COSName.DP);
 
-        // get compressed data
-        int length = parameters.getInt(COSName.LENGTH, -1);
-        byte[] compressed;
-        if (length != -1)
-        {
-            compressed = new byte[length];
-            long written = IOUtils.populateBuffer(encoded, compressed);
-            if (written != compressed.length)
-            {
-                log.warn("Buffer for compressed data did not match the length"
-                        + " of the actual compressed data");
-            }
-        }
-        else
-        {
-            // inline images don't provide the length of the stream so that
-            // we have to read until the end of the stream to find out the length
-            // the streams inline images are stored in are mostly small ones
-            compressed = IOUtils.toByteArray(encoded);
-        }
-
         // parse dimensions
         int cols = decodeParms.getInt(COSName.COLUMNS, 1728);
         int rows = decodeParms.getInt(COSName.ROWS, 0);
@@ -91,15 +70,17 @@ final class CCITTFaxFilter extends Filter
 
         // decompress data
         int k = decodeParms.getInt(COSName.K, 0);
+        boolean encodedByteAlign = decodeParms.getBoolean(COSName.ENCODED_BYTE_ALIGN, false);
         int arraySize = (cols + 7) / 8 * rows;
         TIFFFaxDecoder faxDecoder = new TIFFFaxDecoder(1, cols, rows);
         // TODO possible options??
         long tiffOptions = 0;
+        byte[] compressed = IOUtils.toByteArray(encoded);
         byte[] decompressed = null;
         if (k == 0)
         {
             InputStream in = new CCITTFaxG31DDecodeInputStream(
-                    new ByteArrayInputStream(compressed), cols);
+                    new ByteArrayInputStream(compressed), cols, encodedByteAlign);
             in = new FillOrderChangeInputStream(in); //Decorate to change fill order
             decompressed = IOUtils.toByteArray(in);
             in.close();
@@ -112,7 +93,7 @@ final class CCITTFaxFilter extends Filter
         else if (k < 0)
         {
             decompressed = new byte[arraySize];
-            faxDecoder.decodeT6(decompressed, compressed, 0, rows, tiffOptions);
+            faxDecoder.decodeT6(decompressed, compressed, 0, rows, tiffOptions, encodedByteAlign);
         }
 
         // invert bitmap
