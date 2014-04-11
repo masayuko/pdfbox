@@ -42,6 +42,7 @@ import org.apache.pdfbox.pdmodel.common.COSObjectable;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.common.PDStream;
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
+import org.apache.pdfbox.pdmodel.encryption.StandardDecryptionMaterial;
 import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem;
 import org.apache.pdfbox.pdmodel.interactive.pagenavigation.PDThreadBead;
 import org.apache.pdfbox.text.PositionWrapper;
@@ -273,20 +274,9 @@ public class PDFTextStripper extends PDFStreamEngine
     }
 
     /**
-     * @deprecated
-     * @see PDFTextStripper#writeText( PDDocument, Writer )
-     * @param doc The document to extract the text.
-     * @param outputStream The stream to write the text to.
-     * @throws IOException If there is an error extracting the text.
-     */
-    public void writeText( COSDocument doc, Writer outputStream ) throws IOException
-    {
-        writeText( new PDDocument( doc ), outputStream );
-    }
-
-    /**
      * {@inheritDoc}
      */
+    @Override
     public void resetEngine()
     {
         super.resetEngine();
@@ -336,7 +326,8 @@ public class PDFTextStripper extends PDFStreamEngine
             //
             try
             {
-                document.decrypt("");
+                StandardDecryptionMaterial sdm = new StandardDecryptionMaterial("");
+                document.openProtection(sdm);
             }
             catch (InvalidPasswordException e)
             {
@@ -898,6 +889,7 @@ public class PDFTextStripper extends PDFStreamEngine
      *
      * @param text The text to process.
      */
+    @Override
     protected void processTextPosition( TextPosition text )
     {
         boolean showCharacter = true;
@@ -1567,6 +1559,7 @@ public class PDFTextStripper extends PDFStreamEngine
      * 
      * @return the reversed string
      */
+    @Override
     public String inspectFontEncoding(String str)
     {
         if (!sortByPosition || str == null || str.length() < 2)

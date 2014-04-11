@@ -29,6 +29,7 @@ import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.encryption.StandardDecryptionMaterial;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.util.ImageIOUtil;
@@ -187,7 +188,8 @@ public class PDFToImage
                     {
                         try
                         {
-                            document.decrypt( password );
+                            StandardDecryptionMaterial sdm = new StandardDecryptionMaterial(password);
+                            document.openProtection(sdm);
                         }
                         catch( InvalidPasswordException e )
                         {
@@ -246,8 +248,8 @@ public class PDFToImage
                 for (int i = startPage - 1; i < endPage && i < numPages; i++)
                 {
                     BufferedImage image = renderer.renderImageWithDPI(i, dpi, imageType);
-                    String fileName = outputPrefix + (i + 1);
-                    success &= ImageIOUtil.writeImage(image, imageFormat, fileName, dpi);
+                    String fileName = outputPrefix + (i + 1) + "." + imageFormat;                    
+                    success &= ImageIOUtil.writeImage(image, fileName, dpi);
                 }
 
                 if (!success)
