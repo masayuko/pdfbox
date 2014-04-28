@@ -269,34 +269,17 @@ public final class PDICCBased extends PDCIEBasedColorSpace
         return list;
     }
 
-    private COSArray getRangeArray(int n)
-    {
-        COSArray rangeArray = (COSArray)stream.getStream().getDictionaryObject(COSName.RANGE);
-        if(rangeArray == null)
-        {
-            rangeArray = new COSArray();
-            stream.getStream().setItem(COSName.RANGE, rangeArray);
-            while(rangeArray.size() < n*2)
-            {
-                rangeArray.add(new COSFloat(-100));
-                rangeArray.add(new COSFloat(100));
-            }
-        }
-        return rangeArray;
-    }
-
     /**
      * Returns the range for a certain component number.
-     * This is will never return null.
+     * This will never return null.
      * If it is not present then the range 0..1 will be returned.
      * @param n the component number to get the range for
      * @return the range for this component
      */
     public PDRange getRangeForComponent(int n)
     {
-        COSArray rangeArray = getRangeArray(n);
-
-        if (rangeArray.size() == 0)
+        COSArray rangeArray = (COSArray) stream.getStream().getDictionaryObject(COSName.RANGE);
+        if (rangeArray == null || rangeArray.size() < getNumberOfComponents() * 2)
         {
             return new PDRange(); // 0..1
         }
@@ -356,7 +339,18 @@ public final class PDICCBased extends PDCIEBasedColorSpace
      */
     public void setRangeForComponent(PDRange range, int n)
     {
-        COSArray rangeArray = getRangeArray(n);
+        COSArray rangeArray = (COSArray) stream.getStream().getDictionaryObject(COSName.RANGE);
+        if (rangeArray == null)
+        {
+            rangeArray = new COSArray();
+            stream.getStream().setItem(COSName.RANGE, rangeArray);
+        }
+        // extend range array with default values if needed
+        while (rangeArray.size() < (n + 1) * 2)
+        {
+            rangeArray.add(new COSFloat(0));
+            rangeArray.add(new COSFloat(1));
+        }
         rangeArray.set(n*2, new COSFloat(range.getMin()));
         rangeArray.set(n*2+1, new COSFloat(range.getMax()));
     }
